@@ -1,0 +1,6 @@
+version: v1.0.0-alpha-build.459.2240+g84c486ee
+plugins:
+  - builtin: buildfile
+    options:
+      skip: [node_modules, tools/.venv]
+  - builtin: bash

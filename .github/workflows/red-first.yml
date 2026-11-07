@@ -1,0 +1,37 @@
+name: red-first
+
+# Plan 7.5: each test that a pull request adds must fail on the base branch (see tools/red-first.sh).
+# A pull request with the label no-behavior skips the check. The label events run the job again, so a new label takes effect at once.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+# An older run must not finish after a newer one and replace its result.
+concurrency:
+  group: red-first-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  red-first:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      RED_FIRST_SKIP: ${{ contains(github.event.pull_request.labels.*.name, 'no-behavior') && '1' || '' }}
+      BASE_REF: ${{ github.base_ref }}
+    steps:
+      # fetch-depth 0 brings origin/<base branch> in this step, which still has the token. The token is not kept (persist-credentials), so
+      # npm ci and the tests of the pull request, which run later and may be changed by it, cannot read it. A later git fetch would need it.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      # As in app.yml: no install script of a dependency, then the one of esbuild.
+      - run: npm ci --ignore-scripts
+      - run: bash tools/red-first.sh --base "origin/$BASE_REF"

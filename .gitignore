@@ -1,0 +1,16 @@
+.omc
+node_modules/
+coverage/
+dist/
+.heph/
+test/fixtures/private/
+__pycache__/
+.venv/
+*.pyc
+
+# BEGIN heph-generated (managed by `heph tool gen-gitignore` — do not edit)
+# END heph-generated
+.vitest/
+spike-logs*.jsonl
+spike-images/
+.pytest_cache/

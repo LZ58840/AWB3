@@ -1,0 +1,20 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      # Pinned to one version each, and the peer pins make them move together: vitest with its coverage package, devvit with its packages.
+      vitest:
+        patterns: [vitest, '@vitest/*']
+      devvit:
+        patterns: [devvit, '@devvit/*']
+  - package-ecosystem: pip
+    directory: /tools # tools/requirements.txt
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions # the actions in .github/workflows are pinned to a commit; this keeps the pins and their version comments current
+    directory: /
+    schedule:
+      interval: weekly

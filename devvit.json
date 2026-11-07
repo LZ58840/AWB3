@@ -1,0 +1,207 @@
+{
+  "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
+  "name": "animewallpaperbotv3",
+  "server": {
+    "dir": "dist/server",
+    "entry": "index.cjs"
+  },
+  "permissions": {
+    "reddit": {
+      "enable": true,
+      "scope": "moderator"
+    },
+    "redis": true
+  },
+  "triggers": {
+    "onPostSubmit": "/internal/triggers/post-submit",
+    "onPostFlairUpdate": "/internal/triggers/post-flair-update"
+  },
+  "scheduler": {
+    "tasks": {
+      "tick": {
+        "endpoint": "/internal/cron/tick",
+        "cron": "* * * * *"
+      },
+      "sweep": {
+        "endpoint": "/internal/cron/sweep",
+        "cron": "*/5 * * * *"
+      },
+      "health": {
+        "endpoint": "/internal/cron/health",
+        "cron": "*/15 * * * *"
+      }
+    }
+  },
+  "menu": {
+    "items": [
+      {
+        "label": "AWB: status",
+        "description": "Show the mode, the queue and the last decisions of AWB",
+        "forUserType": "moderator",
+        "location": "subreddit",
+        "endpoint": "/internal/menu/status"
+      },
+      {
+        "label": "AWB: explain",
+        "description": "Show why AWB acted, or did not act, on this post",
+        "forUserType": "moderator",
+        "location": "post",
+        "endpoint": "/internal/menu/explain"
+      },
+      {
+        "label": "AWB: shadow report",
+        "description": "Compare the decisions of AWB with the decisions of the legacy bot",
+        "forUserType": "moderator",
+        "location": "subreddit",
+        "endpoint": "/internal/menu/shadow-report"
+      }
+    ]
+  },
+  "forms": {
+    "info": "/internal/forms/info",
+    "shadowReport": "/internal/forms/shadow-report"
+  },
+  "settings": {
+    "subreddit": {
+      "mode": {
+        "type": "select",
+        "label": "Mode",
+        "helpText": "Off: AWB does nothing.\nDry run: AWB writes what it would do to its audit log and takes no action.\nEnforce: AWB comments, locks and removes posts.",
+        "options": [
+          {
+            "label": "Off",
+            "value": "off"
+          },
+          {
+            "label": "Dry run",
+            "value": "dry-run"
+          },
+          {
+            "label": "Enforce",
+            "value": "enforce"
+          }
+        ],
+        "defaultValue": "off"
+      },
+      "exceptAuthors": {
+        "type": "string",
+        "label": "Exempt authors",
+        "helpText": "Usernames that AWB never checks. Separate the names with commas. The match is exact.",
+        "defaultValue": "",
+        "validationEndpoint": "/internal/settings/validate/exceptAuthors"
+      },
+      "flairRules": {
+        "type": "paragraph",
+        "label": "Flair rules",
+        "helpText": "One rule on each line, as Flair: value.\nThe value is skip, or a list of horizontal, vertical and square, separated by commas.\nA post with a flair that is not in the list gets no flair check.",
+        "placeholder": "Desktop: horizontal\nMobile: vertical\nOther: skip",
+        "defaultValue": "",
+        "validationEndpoint": "/internal/settings/validate/flairRules"
+      },
+      "resolutionMismatch": {
+        "type": "boolean",
+        "label": "Check the size tags in the title",
+        "helpText": "Remove a post when its title has a size tag, such as [1920x1080], and an image has a different size.",
+        "defaultValue": false
+      },
+      "resolutionBad": {
+        "type": "boolean",
+        "label": "Check the minimum size",
+        "helpText": "Remove a post when an image is smaller than the minimum size of its orientation.",
+        "defaultValue": false
+      },
+      "minHorizontal": {
+        "type": "string",
+        "label": "Minimum size of horizontal images",
+        "helpText": "Width x height, for example 1920x1080.",
+        "defaultValue": "",
+        "validationEndpoint": "/internal/settings/validate/minHorizontal"
+      },
+      "minVertical": {
+        "type": "string",
+        "label": "Minimum size of vertical images",
+        "helpText": "Width x height, for example 900x1600.",
+        "defaultValue": "",
+        "validationEndpoint": "/internal/settings/validate/minVertical"
+      },
+      "minSquare": {
+        "type": "string",
+        "label": "Minimum size of square images",
+        "helpText": "Width x height, for example 1000x1000.",
+        "defaultValue": "",
+        "validationEndpoint": "/internal/settings/validate/minSquare"
+      },
+      "aspectRatio": {
+        "type": "boolean",
+        "label": "Check the aspect ratio",
+        "helpText": "Remove a post when an image is too tall or too wide for its orientation.",
+        "defaultValue": false
+      },
+      "aspectHorizontal": {
+        "type": "string",
+        "label": "Aspect ratio limits of horizontal images",
+        "helpText": "A:B to C:D. A:B is the smallest allowed ratio of width to height, and C:D is the largest. Write none for no limit on one side, for example 16:10 to none.",
+        "defaultValue": "",
+        "validationEndpoint": "/internal/settings/validate/aspectHorizontal"
+      },
+      "aspectVertical": {
+        "type": "string",
+        "label": "Aspect ratio limits of vertical images",
+        "helpText": "A:B to C:D, as for horizontal images, for example 9:21 to 10:16.",
+        "defaultValue": "",
+        "validationEndpoint": "/internal/settings/validate/aspectVertical"
+      },
+      "rateLimit": {
+        "type": "boolean",
+        "label": "Limit the posts of each author",
+        "helpText": "Remove a post when its author already made the allowed number of posts in the window.",
+        "defaultValue": false
+      },
+      "rateLimitHours": {
+        "type": "number",
+        "label": "Rate limit window (hours)",
+        "defaultValue": 24,
+        "validationEndpoint": "/internal/settings/validate/rateLimitHours"
+      },
+      "rateLimitPosts": {
+        "type": "number",
+        "label": "Posts allowed in the window",
+        "helpText": "The next post of the author is removed.",
+        "defaultValue": 4,
+        "validationEndpoint": "/internal/settings/validate/rateLimitPosts"
+      },
+      "rateLimitCountDeleted": {
+        "type": "boolean",
+        "label": "Count deleted posts",
+        "defaultValue": false
+      },
+      "sourceComment": {
+        "type": "boolean",
+        "label": "Require a source comment",
+        "helpText": "Remove a post when its author did not write a top-level comment before the deadline.",
+        "defaultValue": false
+      },
+      "sourceHours": {
+        "type": "number",
+        "label": "Hours to write the source comment",
+        "defaultValue": 1,
+        "validationEndpoint": "/internal/settings/validate/sourceHours"
+      },
+      "repostMonths": {
+        "type": "number",
+        "label": "History length (months)",
+        "helpText": "How long AWB keeps the ids of image posts, from 1 to 8 months. Version 3.0 only stores the ids; the repost check comes with version 3.1.",
+        "defaultValue": 6,
+        "validationEndpoint": "/internal/settings/validate/repostMonths"
+      }
+    }
+  },
+  "sourceIgnores": [
+    "tools/**",
+    "test/fixtures/private/**",
+    "spikes/**"
+  ],
+  "scripts": {
+    "build": "npm run build"
+  }
+}

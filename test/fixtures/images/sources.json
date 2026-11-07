@@ -1,0 +1,100 @@
+{
+  "note": "Every image here is made from the Wikimedia Commons originals below (public domain or CC0), by tools/make_similarity_fixtures.ts.",
+  "sources": {
+    "valley": {
+      "file": "Scenic_Valley_in_the_Afternoon_(SD1.5).jpg",
+      "author": "VulcanSphere",
+      "license": "CC0 (Cc-zero) and public domain (PD-algorithm)",
+      "page": "https://commons.wikimedia.org/wiki/File:Scenic_Valley_in_the_Afternoon_(SD1.5).jpg"
+    },
+    "shrineA": {
+      "file": "Algorithmically-generated_landscape_artwork_of_forest_with_Shinto_shrine.png",
+      "author": "Benlisquare",
+      "license": "Public domain (PD-algorithm)",
+      "page": "https://commons.wikimedia.org/wiki/File:Algorithmically-generated_landscape_artwork_of_forest_with_Shinto_shrine.png"
+    },
+    "shrineB": {
+      "file": "Algorithmically-generated_landscape_artwork_of_forest_with_Shinto_shrine_using_negative_prompt_for_round_stones.png",
+      "author": "Benlisquare",
+      "license": "Public domain (PD-algorithm)",
+      "page": "https://commons.wikimedia.org/wiki/File:Algorithmically-generated_landscape_artwork_of_forest_with_Shinto_shrine_using_negative_prompt_for_round_stones.png"
+    },
+    "charX": {
+      "file": "Red_suit_anime_girl.png",
+      "author": "jsks",
+      "license": "CC0 (Cc-zero)",
+      "page": "https://commons.wikimedia.org/wiki/File:Red_suit_anime_girl.png"
+    },
+    "charY": {
+      "file": "Red_suit_anime_girl_temple.png",
+      "author": "jsks",
+      "license": "CC0 (Cc-zero)",
+      "page": "https://commons.wikimedia.org/wiki/File:Red_suit_anime_girl_temple.png"
+    }
+  },
+  "fixtures": {
+    "base-valley.jpg": [
+      "valley"
+    ],
+    "base-shrine-a.jpg": [
+      "shrineA"
+    ],
+    "base-shrine-b.jpg": [
+      "shrineB"
+    ],
+    "t1-a.jpg": [
+      "shrineA",
+      "charX"
+    ],
+    "t1-b.jpg": [
+      "shrineA",
+      "charY"
+    ],
+    "t1b-a.jpg": [
+      "shrineA",
+      "charX"
+    ],
+    "t1b-b.jpg": [
+      "shrineA",
+      "charY"
+    ],
+    "t6-a.jpg": [
+      "shrineA",
+      "charX"
+    ],
+    "t6-b.jpg": [
+      "shrineA",
+      "charY"
+    ],
+    "t2-watermark.jpg": [
+      "valley"
+    ],
+    "t3-phone.jpg": [
+      "valley"
+    ],
+    "t4-mirror-up-crop-letterbox.jpg": [
+      "valley"
+    ],
+    "edit-recompress.jpg": [
+      "valley"
+    ],
+    "edit-resize.png": [
+      "valley"
+    ],
+    "edit-brightness.jpg": [
+      "valley"
+    ],
+    "edit-hue.jpg": [
+      "valley"
+    ],
+    "edit-crop5.jpg": [
+      "valley"
+    ],
+    "edit-crop15.jpg": [
+      "valley"
+    ],
+    "edit-rotate90.jpg": [
+      "valley"
+    ]
+  }
+}

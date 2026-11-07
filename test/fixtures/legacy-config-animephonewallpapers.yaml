@@ -1,0 +1,33 @@
+# Live legacy `awb` wiki config (owner export 2026-11-07); usernames except AutoModerator replaced.
+enabled: true
+flairs: 
+  Wallpaper: vertical
+  Request: skip
+  Fulfilled: skip
+  Misc: skip
+ResolutionMismatch:
+  enabled: true
+ResolutionBad:
+  enabled: true
+  horizontal: null
+  vertical: 900x1600
+  square: null
+AspectRatioBad:
+  enabled: true
+  horizontal: null
+  vertical: 9:21 to 9:16
+RateLimitAny:
+  enabled: true
+  interval_hours: 24
+  frequency: 4
+  incl_deleted: true
+SourceCommentAny:
+  enabled: true
+  timeout_hrs: 1
+RepostAny:
+  enabled: true
+  report_only: true,
+  similarity_pct: 0.75
+  threshold_months: 6
+except_authors:
+- AutoModerator

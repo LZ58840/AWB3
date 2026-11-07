@@ -1,0 +1,493 @@
+{
+  "subreddit": "Animewallpaper",
+  "posts": [
+    {
+      "id": "p00001",
+      "author": "user00001",
+      "createdUtc": 1796722800,
+      "title": "[1920x1080]",
+      "flair": "Desktop",
+      "images": [
+        {
+          "url": "https://i.redd.it/i00001.jpg",
+          "width": 1920,
+          "height": 1080
+        }
+      ],
+      "sourceCommentUtc": 1796723400,
+      "legacy": {
+        "action": "none",
+        "comment": null,
+        "moderated": true,
+        "removedBy": null,
+        "approved": false,
+        "deleted": false
+      }
+    },
+    {
+      "id": "p00002",
+      "author": "user00002",
+      "createdUtc": 1796722920,
+      "title": "[1920x1080]",
+      "flair": "Desktop",
+      "images": [
+        {
+          "url": "https://i.redd.it/i00002.png",
+          "width": 1600,
+          "height": 1200
+        }
+      ],
+      "sourceCommentUtc": null,
+      "legacy": {
+        "action": "remove",
+        "comment": "Thank you for contributing to r/Animewallpaper! Unfortunately, your submission was removed for the following reasons:\n\n- **Mismatched resolution in title.** Please ensure the resolution tagged in the title exactly matches the resolution of your submitted image.\n\n\t- Tagged resolution in title: 1920x1080\n\n\t- Mismatched resolution: 1600x1200\n\n- **Bad resolution.**\n\n\t- Horizontal images must be at least **1920x1080**.\n\n\t\t- [Image #1 (1600x1200)](https://i.redd.it/i00002.png) is too small.\n\n- **Bad aspect ratio.**\n\n\t- Horizontal images must have an aspect ratio **of or wider than 16:10 (1.6:1)**.\n\n\t\t- [Image #1 (1.333:1)](https://i.redd.it/i00002.png) is too tall.\n\n*I am a bot, and this action was performed automatically. Please [contact the moderators of this subreddit](https://reddit.com/message/compose/?to=/r/Animewallpaper) if you have any questions or concerns.*",
+        "moderated": true,
+        "removedBy": "awb",
+        "approved": false,
+        "deleted": false
+      }
+    },
+    {
+      "id": "p00003",
+      "author": "user00003",
+      "createdUtc": 1796723040,
+      "title": "",
+      "flair": "Desktop",
+      "images": [
+        {
+          "url": "https://i.redd.it/i00003.jpg",
+          "width": 900,
+          "height": 1600
+        }
+      ],
+      "sourceCommentUtc": null,
+      "legacy": {
+        "action": "remove",
+        "comment": "Thank you for contributing to r/Animewallpaper! Unfortunately, your submission was removed for the following reason:\n\n- Vertical images are not allowed under the **Desktop** flair.\n\n\t- [Image #1](https://i.redd.it/i00003.jpg) is vertical.\n\n*I am a bot, and this action was performed automatically. Please [contact the moderators of this subreddit](https://reddit.com/message/compose/?to=/r/Animewallpaper) if you have any questions or concerns.*",
+        "moderated": true,
+        "removedBy": "awb",
+        "approved": false,
+        "deleted": false
+      }
+    },
+    {
+      "id": "p00004",
+      "author": "user00004",
+      "createdUtc": 1796723160,
+      "title": "",
+      "flair": "Desktop",
+      "images": [
+        {
+          "url": "https://i.redd.it/i00004.jpg",
+          "width": 1920,
+          "height": 1080
+        },
+        {
+          "url": "https://i.redd.it/i00005.jpg",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "sourceCommentUtc": null,
+      "legacy": {
+        "action": "remove",
+        "comment": "Thank you for contributing to r/Animewallpaper! Unfortunately, your submission was removed for the following reason:\n\n- **Bad resolution.**\n\n\t- Horizontal images must be at least **1920x1080**.\n\n\t\t- [Image #1 (1280x720)](https://i.redd.it/i00005.jpg) is too small.\n\n*I am a bot, and this action was performed automatically. Please [contact the moderators of this subreddit](https://reddit.com/message/compose/?to=/r/Animewallpaper) if you have any questions or concerns.*",
+        "moderated": true,
+        "removedBy": "awb",
+        "approved": false,
+        "deleted": false
+      }
+    },
+    {
+      "id": "p00005",
+      "author": "user00005",
+      "createdUtc": 1796723280,
+      "title": "[1920x1080]",
+      "flair": "Desktop",
+      "images": [
+        {
+          "url": "https://i.redd.it/i00006.jpg",
+          "width": 1920,
+          "height": 1080
+        }
+      ],
+      "sourceCommentUtc": 1796723380,
+      "legacy": {
+        "action": "none",
+        "comment": null,
+        "moderated": true,
+        "removedBy": null,
+        "approved": false,
+        "deleted": false
+      }
+    },
+    {
+      "id": "p00006",
+      "author": "user00005",
+      "createdUtc": 1796726880,
+      "title": "[1920x1080]",
+      "flair": "Desktop",
+      "images": [
+        {
+          "url": "https://i.redd.it/i00007.jpg",
+          "width": 1920,
+          "height": 1080
+        }
+      ],
+      "sourceCommentUtc": 1796726980,
+      "legacy": {
+        "action": "none",
+        "comment": null,
+        "moderated": true,
+        "removedBy": null,
+        "approved": false,
+        "deleted": false
+      }
+    },
+    {
+      "id": "p00007",
+      "author": "user00005",
+      "createdUtc": 1796730480,
+      "title": "[1920x1080]",
+      "flair": "Desktop",
+      "images": [
+        {
+          "url": "https://i.redd.it/i00008.jpg",
+          "width": 1920,
+          "height": 1080
+        }
+      ],
+      "sourceCommentUtc": null,
+      "legacy": {
+        "action": "remove",
+        "comment": "Thank you for contributing to r/Animewallpaper! Unfortunately, your submission was removed for the following reason:\n\n- **Rate limit reached.**\n\n\t- You cannot submit more than **2 posts in a 24-hour period.** You submitted:\n\n\t\t- [p00006](https://redd.it/p00006) (1 hour ago)\n\n\t\t- [p00005](https://redd.it/p00005) (2 hours ago)\n\n\t- Please wait until **2026-12-09 09:48:00 UTC** to submit again. \n\n*I am a bot, and this action was performed automatically. Please [contact the moderators of this subreddit](https://reddit.com/message/compose/?to=/r/Animewallpaper) if you have any questions or concerns.*",
+        "moderated": true,
+        "removedBy": "awb",
+        "approved": false,
+        "deleted": false
+      }
+    },
+    {
+      "id": "p00008",
+      "author": "user00006",
+      "createdUtc": 1796731800,
+      "title": "[1920x1080]",
+      "flair": "Desktop",
+      "images": [
+        {
+          "url": "https://i.redd.it/i00009.jpg",
+          "width": 1920,
+          "height": 1080
+        }
+      ],
+      "sourceCommentUtc": 1796731900,
+      "legacy": {
+        "action": "remove",
+        "comment": "Thank you for contributing to r/Animewallpaper! Unfortunately, your submission was removed for the following reason:\n\n- **Rate limit reached.**\n\n\t- You cannot submit more than **2 posts in a 24-hour period.** You submitted:\n\n\t\t- [p00009](https://redd.it/p00009) (40 minutes ago)\n\n\t\t- [p00010](https://redd.it/p00010) (50 minutes ago)\n\n\t- Please wait until **2026-12-09 12:20:00 UTC** to submit again. \n\n*I am a bot, and this action was performed automatically. Please [contact the moderators of this subreddit](https://reddit.com/message/compose/?to=/r/Animewallpaper) if you have any questions or concerns.*",
+        "moderated": true,
+        "removedBy": "awb",
+        "approved": false,
+        "deleted": false
+      }
+    },
+    {
+      "id": "p00010",
+      "author": "user00006",
+      "createdUtc": 1796732400,
+      "title": "[1920x1080]",
+      "flair": "Desktop",
+      "images": [
+        {
+          "url": "https://i.redd.it/i00010.jpg",
+          "width": 1920,
+          "height": 1080
+        }
+      ],
+      "sourceCommentUtc": 1796732500,
+      "legacy": {
+        "action": "remove",
+        "comment": "Thank you for contributing to r/Animewallpaper! Unfortunately, your submission was removed for the following reason:\n\n- **Rate limit reached.**\n\n\t- You cannot submit more than **2 posts in a 24-hour period.** You submitted:\n\n\t\t- [p00009](https://redd.it/p00009) (50 minutes ago)\n\n\t\t- [p00008](https://redd.it/p00008) (10 minutes ago)\n\n\t- Please wait until **2026-12-09 12:10:00 UTC** to submit again. \n\n*I am a bot, and this action was performed automatically. Please [contact the moderators of this subreddit](https://reddit.com/message/compose/?to=/r/Animewallpaper) if you have any questions or concerns.*",
+        "moderated": true,
+        "removedBy": "awb",
+        "approved": false,
+        "deleted": false
+      }
+    },
+    {
+      "id": "p00009",
+      "author": "user00006",
+      "createdUtc": 1796733000,
+      "title": "[1920x1080]",
+      "flair": "Desktop",
+      "images": [
+        {
+          "url": "https://i.redd.it/i00011.jpg",
+          "width": 1920,
+          "height": 1080
+        }
+      ],
+      "sourceCommentUtc": null,
+      "legacy": {
+        "action": "remove",
+        "comment": "Thank you for contributing to r/Animewallpaper! Unfortunately, your submission was removed for the following reason:\n\n- **Rate limit reached.**\n\n\t- You cannot submit more than **2 posts in a 24-hour period.** You submitted:\n\n\t\t- [p00010](https://redd.it/p00010) (10 minutes ago)\n\n\t\t- [p00008](https://redd.it/p00008) (20 minutes ago)\n\n\t- Please wait until **2026-12-09 12:10:00 UTC** to submit again. \n\n*I am a bot, and this action was performed automatically. Please [contact the moderators of this subreddit](https://reddit.com/message/compose/?to=/r/Animewallpaper) if you have any questions or concerns.*",
+        "moderated": true,
+        "removedBy": "awb",
+        "approved": false,
+        "deleted": false
+      }
+    },
+    {
+      "id": "p00011",
+      "author": "user00007",
+      "createdUtc": 1796734800,
+      "title": "[1920x1080]",
+      "flair": "Desktop",
+      "images": [
+        {
+          "url": "https://i.redd.it/i00012.jpg",
+          "width": 1920,
+          "height": 1080
+        }
+      ],
+      "sourceCommentUtc": null,
+      "legacy": {
+        "action": "remove",
+        "comment": "Thank you for contributing to r/Animewallpaper! Unfortunately, your submission was removed for the following reason:\n\n- **Missing source in comments.** Timeout after 1 hour.\n\n\t- Please make a top level comment crediting the original source artwork/artist.\n\n\t\t- Try doing a search for the artwork on [SauceNAO](https://saucenao.com/) or [IQDB](https://iqdb.org/?css=1).\n\n\t\t- If you edited this wallpaper, please provide the sources of all artworks used.\n\n\t\t- If source is from official media, please cite the episode, chapter, volume, etc.\n\n\t- Respect the artist and their work - do not impersonate, steal from, or infringe on the copyright of other artists.\n\n*I am a bot, and this action was performed automatically. Please [contact the moderators of this subreddit](https://reddit.com/message/compose/?to=/r/Animewallpaper) if you have any questions or concerns.*",
+        "moderated": true,
+        "removedBy": "awb",
+        "approved": false,
+        "deleted": false
+      }
+    },
+    {
+      "id": "p00012",
+      "author": "user00008",
+      "createdUtc": 1796735400,
+      "title": "[1920x1080]",
+      "flair": "Desktop",
+      "images": [
+        {
+          "url": "https://i.redd.it/i00013.jpg",
+          "width": 1920,
+          "height": 1080
+        }
+      ],
+      "sourceCommentUtc": 1796742600,
+      "legacy": {
+        "action": "remove",
+        "comment": "Thank you for contributing to r/Animewallpaper! Unfortunately, your submission was removed for the following reason:\n\n- **Missing source in comments.** Timeout after 1 hour.\n\n\t- Please make a top level comment crediting the original source artwork/artist.\n\n\t\t- Try doing a search for the artwork on [SauceNAO](https://saucenao.com/) or [IQDB](https://iqdb.org/?css=1).\n\n\t\t- If you edited this wallpaper, please provide the sources of all artworks used.\n\n\t\t- If source is from official media, please cite the episode, chapter, volume, etc.\n\n\t- Respect the artist and their work - do not impersonate, steal from, or infringe on the copyright of other artists.\n\n*I am a bot, and this action was performed automatically. Please [contact the moderators of this subreddit](https://reddit.com/message/compose/?to=/r/Animewallpaper) if you have any questions or concerns.*",
+        "moderated": true,
+        "removedBy": "awb",
+        "approved": false,
+        "deleted": false
+      }
+    },
+    {
+      "id": "p00013",
+      "author": "user00009",
+      "createdUtc": 1796736000,
+      "title": "",
+      "flair": "Other",
+      "images": [
+        {
+          "url": "https://i.redd.it/i00014.jpg",
+          "width": 1600,
+          "height": 1200
+        }
+      ],
+      "sourceCommentUtc": null,
+      "legacy": {
+        "action": "none",
+        "comment": null,
+        "moderated": false,
+        "removedBy": null,
+        "approved": false,
+        "deleted": false
+      }
+    },
+    {
+      "id": "p00014",
+      "author": "user00010",
+      "createdUtc": 1796736600,
+      "title": "",
+      "flair": "Desktop",
+      "images": [
+        {
+          "url": "https://i.redd.it/i00015.jpg",
+          "width": 1600,
+          "height": 1200
+        }
+      ],
+      "sourceCommentUtc": null,
+      "legacy": {
+        "action": "none",
+        "comment": null,
+        "moderated": false,
+        "removedBy": null,
+        "approved": true,
+        "deleted": false
+      }
+    },
+    {
+      "id": "p00015",
+      "author": "user00011",
+      "createdUtc": 1796737200,
+      "title": "",
+      "flair": "Desktop",
+      "images": [
+        {
+          "url": "https://i.redd.it/i00016.jpg",
+          "width": 1600,
+          "height": 1200
+        }
+      ],
+      "sourceCommentUtc": null,
+      "legacy": {
+        "action": "none",
+        "comment": null,
+        "moderated": false,
+        "removedBy": "mod",
+        "approved": false,
+        "deleted": false
+      }
+    },
+    {
+      "id": "p00016",
+      "author": "user00012",
+      "createdUtc": 1796737800,
+      "title": "[1920x1080]",
+      "flair": "Desktop",
+      "images": [
+        {
+          "url": "https://i.redd.it/i00017.jpg",
+          "width": 1920,
+          "height": 1080
+        }
+      ],
+      "sourceCommentUtc": 1796737900,
+      "legacy": {
+        "action": "none",
+        "comment": null,
+        "moderated": true,
+        "removedBy": "mod",
+        "approved": false,
+        "deleted": false
+      }
+    },
+    {
+      "id": "p00017",
+      "author": "user00013",
+      "createdUtc": 1796738400,
+      "title": "",
+      "flair": "Desktop",
+      "images": [
+        {
+          "url": "https://i.redd.it/i00018.jpg",
+          "width": 1600,
+          "height": 1200
+        }
+      ],
+      "sourceCommentUtc": null,
+      "legacy": {
+        "action": "none",
+        "comment": null,
+        "moderated": false,
+        "removedBy": null,
+        "approved": false,
+        "deleted": true
+      }
+    },
+    {
+      "id": "p00018",
+      "author": "user00014",
+      "createdUtc": 1796739000,
+      "title": "",
+      "flair": "Desktop",
+      "images": [
+        {
+          "url": "https://i.imgur.com/i00019.jpg",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "sourceCommentUtc": null,
+      "legacy": {
+        "action": "remove",
+        "comment": "Thank you for contributing to r/Animewallpaper! Unfortunately, your submission was removed for the following reason:\n\n- **Bad resolution.**\n\n\t- Horizontal images must be at least **1920x1080**.\n\n\t\t- [Image #1 (1280x720)](https://i.imgur.com/i00019.jpg) is too small.\n\n*I am a bot, and this action was performed automatically. Please [contact the moderators of this subreddit](https://reddit.com/message/compose/?to=/r/Animewallpaper) if you have any questions or concerns.*",
+        "moderated": true,
+        "removedBy": "awb",
+        "approved": false,
+        "deleted": false
+      }
+    },
+    {
+      "id": "p00019",
+      "author": "user00015",
+      "createdUtc": 1796739600,
+      "title": "[1920x1080]",
+      "flair": "Desktop",
+      "images": [
+        {
+          "url": "https://i.redd.it/i00020.jpg",
+          "width": 1920,
+          "height": 1080
+        }
+      ],
+      "sourceCommentUtc": 1796739700,
+      "legacy": {
+        "action": "remove",
+        "comment": "Thank you for contributing to r/Animewallpaper! Unfortunately, your submission was removed for the following reason:\n\n- **Repost detected.**\n\n\t- Please avoid reposting images submitted in the last 6 months.\n\n\t\t- [Image #1](https://i.redd.it/i00020.jpg) matched submission [p00001](https://redd.it/p00001) (2 months ago, [87.65% certainty](https://i.redd.it/i00001.jpg))\n\n*I am a bot, and this action was performed automatically. Please [contact the moderators of this subreddit](https://reddit.com/message/compose/?to=/r/Animewallpaper) if you have any questions or concerns.*",
+        "moderated": true,
+        "removedBy": "awb",
+        "approved": false,
+        "deleted": false
+      }
+    },
+    {
+      "id": "p00020",
+      "author": "user00016",
+      "createdUtc": 1796740200,
+      "title": "[1920x1080]",
+      "flair": "Desktop",
+      "images": [
+        {
+          "url": "https://i.redd.it/i00021.jpg",
+          "width": 1920,
+          "height": 1080
+        }
+      ],
+      "sourceCommentUtc": 1796740300,
+      "legacy": {
+        "action": "report",
+        "comment": "Thank you for contributing to r/Animewallpaper! Unfortunately, your submission was removed for the following reason:\n\n- **Repost detected.**\n\n\t- Please avoid reposting images submitted in the last 6 months.\n\n\t\t- [Image #1](https://i.redd.it/i00021.jpg) matched submission [p00001](https://redd.it/p00001) (2 months ago, [87.65% certainty](https://i.redd.it/i00001.jpg))\n\n*I am a bot, and this action was performed automatically. Please [contact the moderators of this subreddit](https://reddit.com/message/compose/?to=/r/Animewallpaper) if you have any questions or concerns.*",
+        "moderated": true,
+        "removedBy": null,
+        "approved": false,
+        "deleted": false
+      }
+    },
+    {
+      "id": "p00021",
+      "author": "user00017",
+      "createdUtc": 1796740800,
+      "title": "[1920x1080]",
+      "flair": "Desktop",
+      "images": [
+        {
+          "url": "https://i.redd.it/i00022.jpg",
+          "width": 1920,
+          "height": 1080
+        }
+      ],
+      "sourceCommentUtc": 1796744400,
+      "legacy": {
+        "action": "none",
+        "comment": null,
+        "moderated": true,
+        "removedBy": null,
+        "approved": false,
+        "deleted": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+name: app
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  node:
+    name: node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # 24 is the CI version of the plan (7.8). 22 is the version of the dev machine and the lower bound of "engines".
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      # Dependencies run no install script. Only esbuild's runs again, in the step after: it swaps the esbuild shim for the native binary
+      # (tsx, devvit build). The typecheck and the tests pass with no install script at all (checked with npm ci --ignore-scripts alone).
+      - run: npm ci --ignore-scripts
+      # Plan 7.8: the lint rules. The repo has no eslint; `npm run lint` runs test/lint (the rule "no module state").
+      - run: npm run lint
+      - run: npm run typecheck
+      # One vitest run does both jobs: all tests (seams 1-5, properties, replay) and the coverage of src/core with a gate of 90% on each
+      # metric. vitest.config.ts sets what is covered (src/core/**). The gate is on the command line, so the config does not change.
+      # The property test uses a new seed for each CI run (the number of the run); it prints the seed, so a failure can be repeated with
+      # AWB_PROPS_SEED. Locally and in heph the seed is fixed in test/props/sequences.test.ts, because heph caches a passing run.
+      - run: >-
+          npm test --
+          --coverage.enabled
+          --coverage.reporter=text
+          --coverage.thresholds.lines=90
+          --coverage.thresholds.functions=90
+          --coverage.thresholds.branches=90
+          --coverage.thresholds.statements=90
+        env:
+          AWB_PROPS_SEED: ${{ github.run_id }}
+
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.14' # tools/requirements.txt was tested on 3.14
+          cache: pip
+          cache-dependency-path: tools/requirements.txt
+      - run: |
+          python -m venv tools/.venv
+          . tools/.venv/bin/activate
+          pip install -r tools/requirements.txt
+          python -m pytest tools/tests -q

@@ -1,0 +1,32 @@
+# The legacy `awb` wiki page that the legacy comments of legacy-corpus-sample.json follow (invented values, the style of the
+# real page: legacy requirements Appendix B). The replay maps it to the install settings of the app.
+enabled: true
+flairs:
+  Desktop: horizontal
+  Mobile: vertical
+  Other: skip
+except_authors: []
+ResolutionMismatch:
+  enabled: true
+ResolutionBad:
+  enabled: true
+  horizontal: 1920x1080
+  vertical: 900x1600
+  square: null
+AspectRatioBad:
+  enabled: true
+  horizontal: 16:10 to none
+  vertical: 9:21 to 10:16
+RateLimitAny:
+  enabled: true
+  interval_hours: 24
+  frequency: 2
+  incl_deleted: false
+SourceCommentAny:
+  enabled: true
+  timeout_hrs: 1
+RepostAny:
+  enabled: true
+  report_only: false
+  similarity_pct: 0.75
+  threshold_months: 6

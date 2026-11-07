@@ -1,0 +1,89 @@
+{
+  "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
+  "name": "animewallpaperbotv3",
+  "server": {
+    "dir": "dist/server",
+    "entry": "index.cjs"
+  },
+  "permissions": {
+    "reddit": {
+      "enable": true,
+      "scope": "moderator"
+    },
+    "redis": true,
+    "http": {
+      "enable": true,
+      "domains": ["i.redd.it", "preview.redd.it"]
+    }
+  },
+  "triggers": {
+    "onPostSubmit": "/internal/triggers/onPostSubmit",
+    "onPostFlairUpdate": "/internal/triggers/onPostFlairUpdate",
+    "onPostDelete": "/internal/triggers/onPostDelete",
+    "onCommentCreate": "/internal/triggers/onCommentCreate",
+    "onAutomoderatorFilterPost": "/internal/triggers/onAutomoderatorFilterPost",
+    "onModAction": "/internal/triggers/onModAction"
+  },
+  "menu": {
+    "items": [
+      {
+        "label": "S2: dump post",
+        "description": "Write the data of this post to the app log",
+        "forUserType": "moderator",
+        "location": "post",
+        "endpoint": "/internal/menu/dump-post"
+      },
+      {
+        "label": "S3: app comments and removes this post",
+        "description": "The app writes a comment on this post and removes it, so that the events of the app account are logged",
+        "forUserType": "moderator",
+        "location": "post",
+        "endpoint": "/internal/menu/app-acts"
+      },
+      {
+        "label": "S2: dump listings",
+        "description": "Write the 25 newest posts and the 25 posts of the mod queue to the app log",
+        "forUserType": "moderator",
+        "location": "subreddit",
+        "endpoint": "/internal/menu/dump-listings"
+      },
+      {
+        "label": "S3: probe platform",
+        "description": "Write the headers, the settings, the app user and the result of two Redis set calls with nx to the app log",
+        "forUserType": "moderator",
+        "location": "subreddit",
+        "endpoint": "/internal/menu/probe-platform"
+      }
+    ]
+  },
+  "settings": {
+    "subreddit": {
+      "fetchProbe": {
+        "type": "boolean",
+        "label": "S6: fetch probe",
+        "helpText": "When on, the app fetches the smallest image of each post that it logs, and logs the answer. The fetch works only after Reddit approved the domains.",
+        "defaultValue": false
+      },
+      "probeSelect": {
+        "type": "select",
+        "label": "S3: select probe",
+        "helpText": "Choose B, then run the menu item S3: probe platform. The app logs the form of the value.",
+        "options": [
+          {
+            "label": "A",
+            "value": "a"
+          },
+          {
+            "label": "B",
+            "value": "b"
+          }
+        ],
+        "defaultValue": "a"
+      }
+    }
+  },
+  "scripts": {
+    "dev": "esbuild src/index.ts --bundle --platform=node --format=cjs --target=node22 --outfile=dist/server/index.cjs --sourcemap --sources-content=false --log-level=warning --watch=forever",
+    "build": "esbuild src/index.ts --bundle --platform=node --format=cjs --target=node22 --outfile=dist/server/index.cjs --sourcemap --sources-content=false --log-level=warning"
+  }
+}
