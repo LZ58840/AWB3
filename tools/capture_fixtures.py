@@ -16,7 +16,7 @@ It reads the legacy db (SELECT only) and Reddit (read only) and writes to test/f
       "title" = only the resolution tags (the only part that a rule reads). "flair" is kept as it is: the flair rule needs
       it, and it is text that the mods set. "sourceCommentUtc" = time of the first top-level comment of the author, or
       null. "legacy" = {"action": "remove" | "report" | "none", "comment": text of the legacy bot comment, "moderated":
-      legacy db flag, "removedBy": "awb" | "automod" | "mod" | null, "approved", "deleted"}. Usernames (not AutoModerator),
+      legacy db flag, "removedBy": "awb" | "automod" | "mod" | "reddit" | null, "approved", "deleted"}. Usernames (not AutoModerator),
       post IDs and image URLs are replaced by pseudonyms, the same everywhere in the run. Every time (createdUtc,
       sourceCommentUtc, and the time that a rate-limit comment names) moves by one random offset per run, 1 to 3 years
       back: the intervals stay equal, and the replay uses only intervals. The tool refuses to write the file if a real
@@ -152,6 +152,8 @@ def legacy_decision(comments, bot):
 def removed_by(banned_by, bot):  # usernames of moderators stay out of the corpus
     if banned_by is None:
         return None
+    if not isinstance(banned_by, str):  # True: Reddit's spam filter or the admins removed it (no name given)
+        return "reddit" if banned_by else None
     return "awb" if banned_by.lower() == bot.lower() else "automod" if banned_by == "AutoModerator" else "mod"
 
 
@@ -209,19 +211,32 @@ def parse_tsv(text):
     return [line.split("\t") for line in text.splitlines()]
 
 
-def capture(sub, db, fetch, anon, bot, posts, until):
+RETRY_WAITS = (10, 60, 300)  # seconds before each retry of a failed Reddit request (prawcore already retried twice)
+
+
+def capture(sub, db, fetch, anon, bot, posts, until, sleep=time.sleep):
     """Build (corpus, labels) of one subreddit.
 
     db(sql) runs SQL on the legacy db and returns the rows as `mysql -N -B` prints them.
     fetch(post_id) returns the Reddit side of a post (see fetch_post), or None when Reddit says 404.
+    A request that still fails after the retries skips its post: one network error must not lose a run of some hours.
     """
     fetched = {}
 
     def get(post_id):
         if post_id not in fetched:
-            fetched[post_id] = fetch(post_id)
-            if fetched[post_id] is None:
-                print(f"skipped {post_id}: Reddit has no such post", file=sys.stderr)
+            for wait in (*RETRY_WAITS, None):
+                try:
+                    fetched[post_id] = fetch(post_id)
+                    if fetched[post_id] is None:
+                        print(f"skipped {post_id}: Reddit has no such post", file=sys.stderr)
+                    break
+                except Exception as error:  # not KeyboardInterrupt: Ctrl+C still stops the run
+                    if wait is None:
+                        fetched[post_id] = None
+                        print(f"skipped {post_id}: {type(error).__name__}: {error}", file=sys.stderr)
+                    else:
+                        sleep(wait)
             if len(fetched) % 100 == 0:
                 print(f"{sub}: {len(fetched)} posts read from Reddit", file=sys.stderr)
         return fetched[post_id]
@@ -264,7 +279,7 @@ def leaks(value, anon):
 
 def corpus_text(corpus, anon):
     if found := leaks(corpus, anon):  # this file goes to git
-        raise SystemExit(f"error: real values are left in the corpus of {corpus['subreddit']}; nothing written: {found[:5]}")
+        raise SystemExit(f"error: real values are left in the corpus of {corpus['subreddit']}; the public file is not written: {found[:5]}")
     return json.dumps(corpus, indent=2, ensure_ascii=False) + "\n"
 
 
@@ -385,12 +400,18 @@ def main(argv=None, io=None, offset=None):
             continue
         (args.out / f"legacy-config-{sub.lower()}.yaml").write_text(anonymize_config(text, anon, sub))
         print(f"{sub}: wrote legacy-config-{sub.lower()}.yaml")
+    status = 0
     for sub in args.sub:
         corpus, labels = capture(sub, db, fetch, anon, BOT, args.posts, until)
-        (args.out / f"legacy-corpus-{sub.lower()}.json").write_text(corpus_text(corpus, anon))
         (private / f"legacy-repost-labels-{sub.lower()}.json").write_text(json.dumps(labels, indent=2) + "\n")
+        try:
+            (args.out / f"legacy-corpus-{sub.lower()}.json").write_text(corpus_text(corpus, anon))
+        except SystemExit as refused:  # keep the hours of work where git cannot see it; the owner reads it and asks the agent
+            (private / f"legacy-corpus-{sub.lower()}.json").write_text(json.dumps(corpus, indent=2, ensure_ascii=False) + "\n")
+            print(f"{refused}. It is saved in {private} instead (private: do not commit it).", file=sys.stderr)
+            status = 1
         print(summary(corpus, labels))
-    return 0
+    return status
 
 
 if __name__ == "__main__":

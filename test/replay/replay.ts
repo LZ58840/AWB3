@@ -24,7 +24,7 @@ export interface CorpusPost {
     action: 'remove' | 'report' | 'none';
     comment: string | null;
     moderated: boolean;
-    removedBy: 'awb' | 'automod' | 'mod' | null;
+    removedBy: 'awb' | 'automod' | 'mod' | 'reddit' | null;
     approved: boolean;
     deleted: boolean;
   };

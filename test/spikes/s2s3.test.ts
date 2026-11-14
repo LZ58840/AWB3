@@ -12,7 +12,7 @@ import { createDevvitTest, type DevvitFixtures } from '@devvit/test/server/vites
 import { context, reddit } from '@devvit/web/server';
 import { afterAll, expect, vi } from 'vitest';
 import devvit from '../../spikes/s2s3/devvit.json';
-import { app } from '../../spikes/s2s3/src/app';
+import { app, probeDecode } from '../../spikes/s2s3/src/app';
 
 const test = createDevvitTest(); // subreddit testsub (t5_testsub), user testuser
 
@@ -48,7 +48,7 @@ test('devvit.json: the app that the owner registered, with Reddit, Redis and the
   expect(config.permissions.http).toEqual({ enable: true, domains: ['i.redd.it', 'preview.redd.it'] });
 });
 
-test('devvit.json: six triggers, four moderator menu items, a fetch switch and a select setting', () => {
+test('devvit.json: six triggers, six moderator menu items, a fetch switch and a select setting', () => {
   expect(Object.keys(devvit.triggers)).toEqual([
     'onPostSubmit', 'onPostFlairUpdate', 'onPostDelete', 'onCommentCreate', 'onAutomoderatorFilterPost', 'onModAction',
   ]);
@@ -57,6 +57,8 @@ test('devvit.json: six triggers, four moderator menu items, a fetch switch and a
     ['S3: app comments and removes this post', 'post', 'moderator'],
     ['S2: dump listings', 'subreddit', 'moderator'],
     ['S3: probe platform', 'subreddit', 'moderator'],
+    ['S4: probe limits', 'subreddit', 'moderator'],
+    ['S4: decode 8K', 'subreddit', 'moderator'],
   ]);
   expect(devvit.settings.subreddit).toMatchObject({ fetchProbe: { type: 'boolean', defaultValue: false }, probeSelect: { type: 'select' } });
 });
@@ -394,4 +396,33 @@ test('extract.mjs reads what the app writes: a post trigger, the listings, the p
   expect(text).toContain('- headers on triggers: devvit-app; user headers: none');
   expect(text).toMatch(/- probe redisNx: \[\{"ok":/);
   expect(text).toContain('- fetch probe S2-99 contract: gallery 320x180 {"status":200,"contentType":"image/jpeg","contentLength":null,"bytes":16,"first16":"ffd8ffe000104a464946000101000001"}');
+});
+
+// S4: the 4K decode runs for real here (a few seconds); the 8K item calls the same function with other sizes.
+test('menu "S4: probe limits" logs WebAssembly, the 4K encode and decode, then the Redis write and each read step, each step on its own line', { timeout: 60_000 }, async ({ mocks }) => {
+  const lines = capture();
+  const hGetAll = vi.spyOn(mocks.redis.plugin, 'HGetAll');
+  const res = await menu(endpointOf('S4: probe limits'), { location: 'subreddit', targetId: 't5_testsub' });
+  expect(res.status).toBe(200);
+  const got = lines();
+  expect(got.map((l) => [l.s4, l.format ?? l.step ?? null])).toEqual([
+    ['wasm', null], ['encode', null], ['encode', null], ['decode', 'jpeg'], ['decode', 'png'], ['redis-write', null],
+    ['redis', 'hGetAllSequential'], ['redis', 'hGetAllParallel'], ['redis', 'getSequential'], ['redis', 'getParallel'], ['redis', 'mGet'],
+  ]);
+  for (const line of got) expect(line, JSON.stringify(line)).not.toHaveProperty('error');
+  for (const line of got) expect(line.ms ?? line.jpeg?.ms ?? line.png?.ms, JSON.stringify(line)).toEqual(expect.any(Number));
+  for (const line of got.slice(3, 5)) expect(line).toMatchObject({ size: '3840x2160', bytes: expect.any(Number), rssMbBefore: expect.any(Number), rssMbAfter: expect.any(Number) });
+  expect(hGetAll).toHaveBeenCalledTimes(70); // 35 one after the other, 35 at once
+  const hash = await mocks.redis.plugin.HGetAll({ key: 'spike:s4:h0' });
+  expect(Object.keys(hash.fieldValues)).toHaveLength(50);
+  expect(Object.values(hash.fieldValues).join('').length).toBe(600 * 1024); // 600 KB a hash
+  expect(new Set(Object.values(hash.fieldValues)).size).toBe(50); // no repeated values
+  for (const key of ['spike:s4:h0', 'spike:s4:h34', 'spike:s4:s49']) expect((await mocks.redis.plugin.ExpireTime({ key })).value, key).toBeGreaterThan(0); // every key expires
+});
+
+test('menu "S4: decode 8K" is the route of its devvit.json item; a failure in the decode setup still writes an s4 line', async () => {
+  expect(app.routes.some((r) => r.method === 'POST' && r.path === endpointOf('S4: decode 8K'))).toBe(true);
+  const lines = capture();
+  await probeDecode(-1, 1); // a negative size: the Uint8Array cannot be made
+  expect(lines()).toEqual([{ s4: 'decode', at: expect.any(Number), size: '-1x1', error: expect.stringContaining('RangeError') }]);
 });

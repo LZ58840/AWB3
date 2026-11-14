@@ -1,7 +1,7 @@
 // Reads the log of the S2/S3 spike app, writes the trigger bodies as fixtures (ids and names replaced), prints the S2 tables and the S3 checks.
 // Usage: node spikes/s2s3/extract.mjs spike-logs.jsonl [outDir]     (outDir is test/fixtures/payloads of this repo by default)
 // The log comes from `devvit logs r/<sub> animewallpaperbotv3 --since 1d --json > spike-logs.jsonl` (README.md). A line is the JSON of a log
-// message; the message is a record of src/app.ts with the key s2, s3 or s6. A line that is the record itself is read too; other lines are skipped.
+// message; the message is a record of src/app.ts with the key s2, s3, s4 or s6. A line that is the record itself is read too; other lines are skipped.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,7 +19,7 @@ const records = readFileSync(logFile, 'utf8').split('\n').flatMap((line) => {
   try {
     const outer = JSON.parse(line);
     const record = typeof outer.message === 'string' ? JSON.parse(outer.message, revive) : JSON.parse(line, revive);
-    return record.s2 || record.s3 || record.s6 ? [record] : [];
+    return record.s2 || record.s3 || record.s4 || record.s6 ? [record] : [];
   } catch {
     return [];
   }
@@ -151,3 +151,7 @@ console.log(`- headers on triggers: ${sent.join(', ') || 'none'}; user headers: 
 const probes = data.filter((r) => r.s3 === 'probe');
 for (const [i, r] of probes.entries()) for (const key of ['redisNx', 'settings', 'appUser']) console.log(`- probe${probes.length > 1 ? ` ${i + 1}` : ''} ${key}: ${json(r[key])}`);
 for (const r of data.filter((r) => r.s6)) console.log(`- fetch probe ${label(r.id)}: ${r.from ? `${r.from} ${r.width}x${r.height} ` : ''}${json(r.ok ?? (r.error ? { error: r.error } : { skipped: r.skipped }))}`);
+
+// S4 lines hold only times, sizes and errors: print them as they are.
+const limits = data.filter((r) => r.s4);
+if (limits.length) console.log(`\n## S4 (times in ms)\n${limits.map(({ at, ...r }) => `- ${json(r)}`).join('\n')}`);

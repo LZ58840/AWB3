@@ -1,6 +1,6 @@
-# S2 and S3 playtest app (animewallpaperbotv3)
+# S2, S3 and S4 playtest app (animewallpaperbotv3)
 
-This app is a test tool. It does not moderate. It writes what Reddit sends to its log. You run it in your test subreddit r/LZ58840. You make test posts. You save the log. The agent reads the log and finishes the spikes S2 and S3 of the plan (`.omc/plans/ralplan-awb3-devvit-rewrite.md`, section 2).
+This app is a test tool. It does not moderate. It writes what Reddit sends to its log. You run it in your test subreddit r/LZ58840. You make test posts. You save the log. The agent reads the log and finishes the spikes S2, S3 and S4 of the plan (`.omc/plans/ralplan-awb3-devvit-rewrite.md`, section 2).
 
 This build is also the domain request of plan step 0.9 (spike S5). It asks Reddit to approve the fetch of `i.redd.it` and `preview.redd.it`.
 
@@ -63,6 +63,13 @@ action: filter
 action_reason: "S2 spike: title word"
 ---
 ```
+
+If Reddit refuses to save this rule ("filter" and "remove" are no longer allowed in new AutoModerator configurations), do this instead:
+
+- If Mod tools has **Automations** and an Automation can hold a post for review (filter, or send to the mod queue without a removal) when the title includes `filterme`, make that Automation. Then continue as written. Tell the agent that an Automation (not AutoModerator) filtered S2-21.
+- Else skip this step. In step 6, skip the post S2-21, its approval in item 7, and its "S2: dump post" at the end. All other steps stay the same. Do not use Crowd Control or a karma filter: it would hold all posts of u/LZ58842 and break the other cases.
+
+The 3.0 app does not depend on the AutoModerator case. Its sweep reads the mod queue every 5 minutes, and a filtered post is not skipped as removed. The exact field values of a filtered post then stay unconfirmed.
 
 ## Step 4. The post that you make before the install (S2 j)
 
@@ -135,6 +142,13 @@ Last, wait 5 minutes. Then click "S2: dump post" (three-dot menu of a post) on S
 1. Open https://developers.reddit.com/r/LZ58840/apps/animewallpaperbotv3 (the install settings page).
 2. Set "S3: select probe" to B. Save.
 3. Click "S3: probe platform" again. This is the second probe.
+
+## Step 7b. Platform limits (S4)
+
+Use the three-dot menu of the subreddit page, as the moderator. Wait for the toast of each item before you click the next one.
+
+1. Click "S4: probe limits". It takes up to 30 seconds. The toast says "S4: logged Redis, WebAssembly and the 4K decode".
+2. Click "S4: decode 8K". It takes up to 30 seconds (Devvit ends a request at 30 seconds), and it can fail with an error or a timeout. A failure is also a result. Do not click it again.
 
 ## Step 8. Save the log and give it to the agent
 

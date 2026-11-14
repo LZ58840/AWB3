@@ -85,6 +85,8 @@ const records: object[] = [
     context: { appName: APP.name, subredditName: SUB.name }, redisNx: [{ ok: 'OK' }, { ok: '' }],
     settings: { ok: { fetchProbe: 'boolean', probeSelect: 'array[1] of string' } }, appUser: { ok: { id: APP.id, username: APP.name } },
   },
+  { s4: 'redis', at: T0 + 145_000, step: 'hGetAllSequential', ms: 900 },
+  { s4: 'decode', at: T0 + 146_000, size: '7680x4320', format: 'jpeg', error: 'Error: maxMemoryUsageInMB limit exceeded' },
   {
     s6: 'fetch', at: T0 + 150_000, id: P1.id, from: 'gallery', url: 'https://preview.redd.it/m4g1c0n1.jpg?width=320', width: 320, height: 180,
     ok: { status: 200, contentType: 'image/jpeg', contentLength: '12345', bytes: 12345, first16: 'ffd8ffe000104a464946000101000001' },
@@ -229,4 +231,8 @@ test('without an output directory the script writes to test/fixtures/payloads of
   copyFileSync(script, join(repo, 'spikes', 's2s3', 'extract.mjs'));
   execFileSync(process.execPath, [join(repo, 'spikes', 's2s3', 'extract.mjs'), join(work, 'spike-logs.jsonl')]);
   expect(readdirSync(join(repo, 'test', 'fixtures', 'payloads')).filter((name) => name.endsWith('.json'))).toHaveLength(5);
+});
+
+test('S4: each line is printed as it is, without its time', () => {
+  expect(stdout).toContain('## S4 (times in ms)\n- {"s4":"redis","step":"hGetAllSequential","ms":900}\n- {"s4":"decode","size":"7680x4320","format":"jpeg","error":"Error: maxMemoryUsageInMB limit exceeded"}');
 });

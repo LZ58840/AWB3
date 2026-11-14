@@ -1,7 +1,9 @@
-// Spikes S2 and S3 of the AWB3 plan (section 2), S5 and the local part of S6. This app only writes JSON lines to its log (read them
-// with `devvit logs`, see ../README.md). Each line has the key s2, s3 or s6. The script extract.mjs reads the lines.
+// Spikes S2, S3 and S4 of the AWB3 plan (section 2), S5 and the local part of S6. This app only writes JSON lines to its log (read
+// them with `devvit logs`, see ../README.md). Each line has the key s2, s3, s4 or s6. The script extract.mjs reads the lines.
 // Only the menu item "S3: app comments and removes this post" changes the subreddit.
 import { context, reddit, redis, settings, type Post } from '@devvit/web/server';
+import { decode as decodePng, encode as encodePng } from 'fast-png';
+import { decode as decodeJpeg, encode as encodeJpeg } from 'jpeg-js';
 import type { MenuItemRequest, T3, UiResponse } from '@devvit/web/shared';
 import { Hono, type Context } from 'hono';
 
@@ -150,6 +152,91 @@ menu('/internal/menu/app-acts', async ({ targetId }) => {
   log({ s3: 'app-acts', at: Date.now(), postId: id, commentId: comment.id });
   await dumpPost(id, 'menu:app-acts');
   return 'S3: the app commented and removed this post';
+});
+
+// S4: platform limits without fetch. Each step writes its own line, so a timeout still leaves the steps before it in the log.
+const timed = async <T>(fn: () => Promise<T> | T) => {
+  const start = performance.now();
+  const result = await attempt(fn);
+  return { ms: Math.round(performance.now() - start), ...('error' in result ? result : {}) };
+};
+const rssMb = () => Math.round(process.memoryUsage().rss / 2 ** 20);
+const S4_HASHES = 35; // plan S4: 35 hGetAll of 600 KB (50 fields of 12 KB) and 50 get of 12 KB
+const S4_STRINGS = 50;
+// Pseudo-random text, different for each seed: a layer that compresses would make repeated text look faster than real data.
+const chunk12k = (seed: number) => {
+  let state = seed + 1;
+  return Array.from({ length: 12 * 1024 }, () => ((state = (Math.imul(state, 1103515245) + 12345) >>> 0) % 36).toString(36)).join('');
+};
+
+export async function probeRedis() {
+  const hashKeys = Array.from({ length: S4_HASHES }, (_, i) => `spike:s4:h${i}`);
+  const stringKeys = Array.from({ length: S4_STRINGS }, (_, i) => `spike:s4:s${i}`);
+  const write = await timed(async () => {
+    for (const [i, key] of hashKeys.entries()) {
+      await redis.hSet(key, Object.fromEntries(Array.from({ length: 50 }, (_, f) => [`f${f}`, chunk12k(i * 50 + f)])));
+      await redis.expire(key, 600);
+    }
+    for (const [i, key] of stringKeys.entries()) await redis.set(key, chunk12k(10_000 + i), { expiration: new Date(Date.now() + 600_000) });
+  });
+  log({ s4: 'redis-write', at: Date.now(), ...write });
+  const steps: [string, () => Promise<unknown>][] = [
+    ['hGetAllSequential', async () => { for (const key of hashKeys) await redis.hGetAll(key); }],
+    ['hGetAllParallel', () => Promise.all(hashKeys.map((key) => redis.hGetAll(key)))],
+    ['getSequential', async () => { for (const key of stringKeys) await redis.get(key); }],
+    ['getParallel', () => Promise.all(stringKeys.map((key) => redis.get(key)))],
+    ['mGet', () => redis.mGet(stringKeys)],
+  ];
+  for (const [step, fn] of steps) log({ s4: 'redis', at: Date.now(), step, ...(await timed(fn)) });
+}
+
+/** A noisy gradient (a smooth image decodes faster than a real one). The app makes it, so no image file goes into the bundle. */
+const testImage = (width: number, height: number) => {
+  const data = new Uint8Array(width * height * 4);
+  let seed = 1;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      seed = (Math.imul(seed, 1103515245) + 12345) >>> 0;
+      const i = (y * width + x) * 4;
+      const noise = (seed >>> 24) & 15;
+      data[i] = ((x * 255) / width + noise) & 255;
+      data[i + 1] = ((y * 255) / height + noise) & 255;
+      data[i + 2] = (((x + y) * 255) / (width + height) + noise) & 255;
+      data[i + 3] = 255;
+    }
+  }
+  return data;
+};
+
+export async function probeDecode(width: number, height: number) {
+  const name = `${width}x${height}`;
+  const result = await attempt(() => decodeSteps(width, height, name));
+  if ('error' in result) log({ s4: 'decode', at: Date.now(), size: name, error: result.error });
+}
+
+async function decodeSteps(width: number, height: number, name: string) {
+  const data = testImage(width, height);
+  let jpg: Uint8Array = new Uint8Array();
+  let png: Uint8Array = new Uint8Array();
+  log({ s4: 'encode', at: Date.now(), size: name, rssMbBefore: rssMb(), jpeg: await timed(() => { jpg = encodeJpeg({ data, width, height }, 90).data; }), jpegBytes: jpg.length });
+  log({ s4: 'encode', at: Date.now(), size: name, rssMbBefore: rssMb(), png: await timed(() => { png = encodePng({ data, width, height, channels: 4 }); }), pngBytes: png.length });
+  const before = rssMb();
+  log({ s4: 'decode', at: Date.now(), size: name, format: 'jpeg', bytes: jpg.length, rssMbBefore: before, ...(await timed(() => decodeJpeg(jpg, { useTArray: true, maxResolutionInMP: 64, maxMemoryUsageInMB: 1024 }))), rssMbAfter: rssMb() });
+  log({ s4: 'decode', at: Date.now(), size: name, format: 'png', bytes: png.length, rssMbBefore: rssMb(), ...(await timed(() => decodePng(png))), rssMbAfter: rssMb() });
+}
+
+const EMPTY_WASM = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]); // the smallest valid module
+
+menu('/internal/menu/probe-limits', async () => {
+  log({ s4: 'wasm', at: Date.now(), ...(await timed(() => WebAssembly.instantiate(EMPTY_WASM))) });
+  await probeDecode(3840, 2160); // first: the request ends at 30 s, and this is the result that the plan checks (< 3 s)
+  await probeRedis();
+  return 'S4: logged Redis, WebAssembly and the 4K decode';
+});
+
+menu('/internal/menu/probe-decode-8k', async () => {
+  await probeDecode(7680, 4320);
+  return 'S4: logged the 8K decode';
 });
 
 app.onError((error, c) => {

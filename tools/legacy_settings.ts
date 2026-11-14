@@ -11,8 +11,8 @@ import { createRequire } from 'node:module';
 import devvit from '../devvit.json';
 import { parseConfig, validateSetting } from '../src/core/config';
 
-// js-yaml is not in package.json: the devvit CLI installs it, and no types come with it. CORE_SCHEMA is safe in js-yaml 3 and 4.
-// It reads a plain `true,` as a text, as PyYAML (legacy) does.
+// js-yaml stays on 3.x (no types come with it): it reads YAML 1.1 octals (010 = 8) as PyYAML (legacy) does; 4+ reads 010 as 10.
+// CORE_SCHEMA is safe. It reads a plain `true,` as a text, as PyYAML does.
 const yaml = createRequire(import.meta.url)('js-yaml') as { load(text: string, options: { schema: unknown }): unknown; CORE_SCHEMA: unknown };
 
 type Settings = Record<string, unknown>;

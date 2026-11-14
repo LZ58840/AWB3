@@ -14,3 +14,4 @@ __pycache__/
 spike-logs*.jsonl
 spike-images/
 .pytest_cache/
+.env

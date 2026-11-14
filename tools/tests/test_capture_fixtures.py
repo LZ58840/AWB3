@@ -1,3 +1,4 @@
+from collections import Counter
 import json
 import shlex
 import subprocess
@@ -120,6 +121,9 @@ def test_build_post_anonymizes_and_keeps_what_the_rules_read():
     other = build_post({**db, "id": "1abc002"}, {**fetched, "bannedBy": "SomeMod", "approvedBy": "OtherMod", "removedByCategory": "deleted", "comments": []}, anon, "AnimewallpaperBot")
     assert other["legacy"] == {"action": "none", "comment": None, "moderated": True, "removedBy": "mod", "approved": True, "deleted": True}
     assert other["sourceCommentUtc"] is None
+    # Reddit gives banned_by = True (no name) when its spam filter or the admins removed the post.
+    spam = build_post({**db, "id": "1abc003"}, {**fetched, "bannedBy": True, "comments": []}, anon, "AnimewallpaperBot")
+    assert spam["legacy"]["removedBy"] == "reddit"
 
 
 def test_build_post_shifts_the_times_of_the_post_and_of_the_source_comment_by_the_same_offset():
@@ -191,6 +195,35 @@ def test_capture_builds_the_corpus_and_the_labels_from_legacy_rows_and_reddit_da
     assert calls == ["1abc001", "1abc002", "1abc003", "1old001"]  # each post is fetched once
     assert leaks(corpus, anon) == []
     assert "1abc002" in capsys.readouterr().err
+
+
+def test_capture_retries_a_failed_request_then_skips_the_post_so_that_one_network_error_does_not_lose_the_run(legacy_db, capsys):
+    db = legacy_db(submissions=[("1abc001", "Animewallpaper", "alice", 1000, 0, 0, 0, 1), ("1abc002", "Animewallpaper", "bob", 2000, 0, 0, 0, 1)])
+    post = {"title": "x", "flair": None, "bannedBy": None, "approvedBy": None, "removedByCategory": None, "comments": []}
+    tries = Counter()
+    waits = []
+
+    def fetch(post_id):
+        tries[post_id] += 1
+        if post_id == "1abc002" or tries[post_id] < 3:  # 1abc001 works at the third try; 1abc002 never works
+            raise ConnectionError("503 Service Unavailable")
+        return post
+
+    corpus, _ = capture("Animewallpaper", db, fetch, Anon(), "AnimewallpaperBot", posts=5, until=9999, sleep=waits.append)
+    assert [p["createdUtc"] for p in corpus["posts"]] == [1000]
+    assert tries == {"1abc001": 3, "1abc002": 4}  # 1 try + 3 retries, then skipped
+    assert waits == [10, 60, 10, 60, 300]
+    assert "skipped 1abc002: ConnectionError" in capsys.readouterr().err
+
+
+def test_capture_does_not_hide_a_stop_by_the_owner(legacy_db):
+    db = legacy_db(submissions=[("1abc001", "Animewallpaper", "alice", 1000, 0, 0, 0, 1)])
+
+    def fetch(post_id):
+        raise KeyboardInterrupt
+
+    with pytest.raises(KeyboardInterrupt):
+        capture("Animewallpaper", db, fetch, Anon(), "AnimewallpaperBot", posts=5, until=9999, sleep=lambda s: None)
 
 
 def test_capture_shifts_the_times_of_the_corpus_and_keeps_the_real_times_in_the_private_labels(legacy_db):
@@ -301,6 +334,16 @@ def test_main_writes_corpus_config_and_private_labels_with_one_set_of_pseudonyms
     labels = json.loads((repo / "private" / "legacy-repost-labels-animewallpaper.json").read_text())
     assert [(r["postId"], r["matchedPostId"], r["outcome"], r["createdUtc"]) for r in labels] == [("1abc001", "1old001", "kept", 1790000000)]  # real: private
     assert capsys.readouterr().out.splitlines()[-1].startswith("Animewallpaper: 1 posts | legacy: remove 1 | rules in comments: repost 1 | repost label pairs: kept 1")
+
+
+def test_main_keeps_the_labels_and_puts_a_corpus_with_a_leak_in_the_private_folder_instead_of_losing_the_run(legacy_db, repo, capsys):
+    # A user named like a flair: the leak check cannot tell the name from the flair text, so it refuses the public file.
+    db = legacy_db(submissions=[("1abc001", "Animewallpaper", "Desktop", 1790000000, 1, 0, 0, 1)], images=[("1abc001", "https://i.redd.it/aaa.png", 1920, 1080)])
+    assert main(["--sub", "Animewallpaper", "--out", str(repo)], (db, lambda post_id: REPOST_REMOVAL, lambda sub: None), offset=-1000) == 1
+    assert not (repo / "legacy-corpus-animewallpaper.json").exists()
+    assert (repo / "private" / "legacy-repost-labels-animewallpaper.json").exists()
+    assert json.loads((repo / "private" / "legacy-corpus-animewallpaper.json").read_text())["posts"][0]["flair"] == "Desktop"
+    assert "real values are left in the corpus of Animewallpaper" in capsys.readouterr().err
 
 
 def test_main_moves_all_times_by_one_random_offset_of_one_to_three_years_back(legacy_db, repo):

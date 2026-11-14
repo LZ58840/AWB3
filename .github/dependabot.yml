@@ -10,6 +10,10 @@ updates:
         patterns: [vitest, '@vitest/*']
       devvit:
         patterns: [devvit, '@devvit/*']
+    ignore:
+      # js-yaml 4+ reads YAML 1.2 (010 = 10). The legacy bot reads the awb wiki page with PyYAML (YAML 1.1); js-yaml 3 agrees with it.
+      - dependency-name: js-yaml
+        update-types: ['version-update:semver-major']
   - package-ecosystem: pip
     directory: /tools # tools/requirements.txt
     schedule:

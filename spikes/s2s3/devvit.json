@@ -13,7 +13,10 @@
     "redis": true,
     "http": {
       "enable": true,
-      "domains": ["i.redd.it", "preview.redd.it"]
+      "domains": [
+        "i.redd.it",
+        "preview.redd.it"
+      ]
     }
   },
   "triggers": {
@@ -53,6 +56,20 @@
         "forUserType": "moderator",
         "location": "subreddit",
         "endpoint": "/internal/menu/probe-platform"
+      },
+      {
+        "label": "S4: probe limits",
+        "description": "Time Redis reads, a 4K JPEG and PNG decode, and WebAssembly; write the results to the app log",
+        "forUserType": "moderator",
+        "location": "subreddit",
+        "endpoint": "/internal/menu/probe-limits"
+      },
+      {
+        "label": "S4: decode 8K",
+        "description": "Time an 8K JPEG and PNG decode and write the result to the app log",
+        "forUserType": "moderator",
+        "location": "subreddit",
+        "endpoint": "/internal/menu/probe-decode-8k"
       }
     ]
   },
