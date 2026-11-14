@@ -8,15 +8,16 @@
 // With only the sample fixture present, the replay runs on the sample.
 import { expect, vi } from 'vitest';
 import { test } from '../flows/helpers';
-import { corpusNames, corpusProblems, digest, loadCorpus as load, replay, tally, type Corpus } from './replay';
+import { beforeDeadline, corpusNames, corpusProblems, type CorpusPost, digest, KNOWN_UNKNOWN, legacyDidNotLook, loadCorpus as load, replay, tally, type Corpus } from './replay';
 
 for (const name of corpusNames()) {
-  test(`replay of the corpus "${name}": every decision and comment equals the legacy one, except the approved D-codes`, async (fx) => {
+  test(`replay of the corpus "${name}": every decision and comment equals the legacy one, except the approved D-codes; the posts it cannot compare are the known ones`, async (fx) => {
     const { corpus, settings } = load(name);
     const outcomes = await replay(fx, corpus, settings);
     const differing = outcomes.filter(({ verdict }) => verdict === 'differs').map(({ id, legacy, awb }) => ({ id, legacy, awb }));
     process.stderr.write(`replay ${name}: ${corpus.posts.length} posts; ${JSON.stringify(tally(outcomes))}; digest ${digest(outcomes)}\n`);
     expect(differing).toEqual([]);
+    expect(outcomes.filter(({ verdict }) => verdict === 'unknown').map(({ id }) => id), 'posts that the replay cannot compare (KNOWN_UNKNOWN)').toEqual(KNOWN_UNKNOWN[name] ?? []);
   });
 }
 
@@ -97,4 +98,62 @@ test('the release needs the real corpora: 200 posts of r/Animewallpaper and 10 o
   ]);
   expect(corpusProblems({ animewallpaper: 300 })).toEqual(['legacy-corpus-animephonewallpapers.json is missing']);
   expect(corpusProblems({})).toHaveLength(2);
+});
+
+const reset = async (fx: { mocks: { redis: { clear(): Promise<void> } } }) => {
+  await fx.mocks.redis.clear();
+  vi.restoreAllMocks();
+};
+
+test('legacy did not look: only when legacy did nothing, no mod acted, and today\'s config does not skip the post', () => {
+  const settings = { exceptAuthors: 'AutoModerator, user00002', flairRules: 'Desktop: horizontal\nAnimated: skip' };
+  const post = (legacy: Partial<CorpusPost['legacy']>, rest: Partial<CorpusPost> = {}): CorpusPost => ({
+    id: 'p1', author: 'user00009', createdUtc: 0, title: '', flair: 'Desktop', images: [], sourceCommentUtc: null,
+    legacy: { action: 'none', comment: null, moderated: false, removedBy: null, approved: false, deleted: false, ...legacy }, ...rest,
+  });
+  expect(legacyDidNotLook(post({}), settings)).toBe(true);
+  for (const legacy of [{ moderated: true }, { action: 'remove' as const }, { removedBy: 'mod' as const }, { approved: true }, { deleted: true }]) {
+    expect(legacyDidNotLook(post(legacy), settings), JSON.stringify(legacy)).toBe(false);
+  }
+  expect(legacyDidNotLook(post({}, { author: 'user00002' }), settings), 'an excepted author').toBe(false);
+  expect(legacyDidNotLook(post({}, { flair: 'Animated' }), settings), 'a skip flair').toBe(false);
+
+  expect(beforeDeadline(post({ moderated: true, removedBy: 'mod' }))).toBe(true);
+  for (const legacy of [{ moderated: false, removedBy: 'mod' as const }, { moderated: true, removedBy: 'mod' as const, action: 'remove' as const }, { moderated: true, removedBy: 'automod' as const }]) {
+    expect(beforeDeadline(post(legacy)), JSON.stringify(legacy)).toBe(false);
+  }
+});
+
+test('the corpus cannot show the post: legacy did not look, or an AutoModerator removal at an unknown time; legacy passed it: a difference', async (fx) => {
+  const { corpus, settings } = load('sample');
+  // p00011: AWB removes it for the source at the deadline. Legacy did not remove it in each case below.
+  const legacy = comment(corpus, 'p00011');
+  const verdict = async () => (await replay(fx, corpus, settings)).find(({ id }) => id === 'p00011')!;
+  Object.assign(legacy, { action: 'none', comment: null, moderated: false, removedBy: null });
+  expect(await verdict()).toMatchObject({ verdict: 'unknown', codes: ['legacy did not look'] });
+  await reset(fx);
+  Object.assign(legacy, { moderated: true, removedBy: 'automod' });
+  expect(await verdict()).toMatchObject({ verdict: 'unknown', codes: ['AutoModerator removal time not in the corpus'] });
+  await reset(fx);
+  Object.assign(legacy, { moderated: true, removedBy: null }); // legacy looked and passed it, AWB removes it
+  expect(await verdict()).toMatchObject({ verdict: 'differs' });
+});
+
+test('a mod removal after legacy looked and did nothing comes before the source deadline, so the app does not act', async (fx) => {
+  const { corpus, settings } = load('sample');
+  Object.assign(comment(corpus, 'p00011'), { action: 'none', comment: null, moderated: true, removedBy: 'mod' });
+  expect((await replay(fx, corpus, settings)).find(({ id }) => id === 'p00011')).toMatchObject({ verdict: 'equal', awb: undefined });
+});
+
+test('title lost: a Reddit removal with no size tag left drops only the legacy mismatch item; a post that kept its tag is compared', async (fx) => {
+  const { corpus, settings } = load('sample');
+  const post = corpus.posts.find(({ id }) => id === 'p00011')!; // AWB removes it for the source
+  const mismatch = '\n\n- **Mismatched resolution in title.** Please ensure the resolution tagged in the title exactly matches the resolution of your submitted image.\n\n\t- Tagged resolution in title: 941x1673\n\n\t- Mismatched resolution: 941x1672';
+  const legacyText = post.legacy.comment!.replace(/\n\n- \*\*Missing source[\s\S]*?(?=\n\n\*I am a bot)/, mismatch);
+  Object.assign(post.legacy, { comment: legacyText, removedBy: 'reddit' });
+  post.title = '';
+  expect((await replay(fx, corpus, settings)).find(({ id }) => id === 'p00011')).toMatchObject({ verdict: 'explained', codes: ['title lost'] });
+  await reset(fx);
+  post.title = '(941x1673)'; // the tag is there: the corpus shows what legacy saw, so the items are compared
+  expect((await replay(fx, corpus, settings)).find(({ id }) => id === 'p00011')).toMatchObject({ verdict: 'differs' });
 });

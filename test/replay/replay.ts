@@ -39,7 +39,8 @@ export interface Outcome {
   /** The legacy removal comment, and the comment of the app (undefined: no removal). */
   legacy?: string;
   awb?: string;
-  verdict: 'equal' | 'explained' | 'differs';
+  /** unknown: the corpus cannot show what legacy saw (codes: the cause); it is not a difference. */
+  verdict: 'equal' | 'explained' | 'differs' | 'unknown';
   /** The D-codes that explain the difference. */
   codes: string[];
 }
@@ -87,11 +88,18 @@ const numbered = (list: Item[]) => list.map((item) => ({ ...item, text: item.tex
  * rate-limit item that only AWB has (a removal that legacy did not make), are not explained.
  * D7: AWB does not see the images on other hosts, so the legacy items of the image rules are dropped; and when nothing else is left of the
  * legacy removal, the source check of AWB goes too (the legacy removal flag had stopped that check, AWB runs it on the post that passes).
+ * title lost: Reddit removed the post and the corpus title has no size tag, but legacy fired the mismatch rule, which needs a tag: the API
+ * gave an empty title. The legacy mismatch item is dropped, and the source check of AWB as for D7. This is a limit of the data, not a D-code.
  * D1: the image numbers. Nothing else is explained.
  */
-function reconcile(legacy: Item[], awb: Item[], { peers, external }: { peers: boolean; external: boolean }): string[] | undefined {
+function reconcile(legacy: Item[], awb: Item[], { peers, external, titleLost }: { peers: boolean; external: boolean; titleLost: boolean }): string[] | undefined {
   const codes: string[] = [];
   let [l, a] = [legacy, awb];
+  if (!same(l, a) && titleLost && l.some(({ rule }) => rule === 'resolutionMismatch')) {
+    codes.push('title lost');
+    l = l.filter(({ rule }) => rule !== 'resolutionMismatch');
+    if (l.length === 0) a = a.filter(({ rule }) => rule !== 'sourceComment');
+  }
   const hasRate = (list: Item[]) => list.some(({ rule }) => rule === 'rateLimit');
   if (!same(l, a) && peers && hasRate(l) && !hasRate(a)) {
     codes.push('D2/D11');
@@ -105,6 +113,24 @@ function reconcile(legacy: Item[], awb: Item[], { peers, external }: { peers: bo
   if (!same(l, a) && same(numbered(l), numbered(a))) codes.push('D1');
   return same(l, a) || same(numbered(l), numbered(a)) ? codes : undefined;
 }
+
+const TAG = /[(\[]\s?[0-9]{3,}\s?[Xx×]\s?[0-9]{3,}\s?[)\]]/; // the legacy size tag (rules.py)
+const names = (text: unknown, separator: string | RegExp) => String(text ?? '').split(separator).map((name) => name.trim()).filter(Boolean);
+/** Today's config skips the post: an excepted author or a `skip` flair. Then AWB must skip it too. */
+const skippedByConfig = ({ author, flair }: CorpusPost, settings: Settings) =>
+  names(settings.exceptAuthors, ',').includes(author) ||
+  (flair !== null && names(settings.flairRules, '\n').some((line) => line.replace(/:\s*skip$/, '') === flair && line.endsWith('skip')));
+
+/** Legacy did not look and no mod acted, and today's config does not skip the post: an old setting (the corpus config is today's) or a legacy
+ * error skipped it, and the corpus does not say which. */
+export const legacyDidNotLook = (post: CorpusPost, settings: Settings) => {
+  const { action, moderated, removedBy, approved, deleted } = post.legacy;
+  return action === 'none' && !moderated && removedBy === null && !approved && !deleted && !skippedByConfig(post, settings);
+};
+/** Legacy looked, did nothing, and a mod removed the post. Legacy stops its source wait on a mod removal (rules.py:276), so the removal came
+ * before the source deadline. Not for AutoModerator: legacy does not stop on its removal, so the corpus does not show when it came. */
+export const beforeDeadline = ({ legacy }: CorpusPost) => legacy.moderated && legacy.action === 'none' && legacy.removedBy === 'mod';
+const automodTimeUnknown = ({ legacy }: CorpusPost) => legacy.moderated && legacy.action === 'none' && legacy.removedBy === 'automod';
 
 /** The posts in the order of their legacy time, each at that time; the source checks and the work of the queue run when they are due. */
 export async function replay(fx: Fx, corpus: Corpus, settings: Settings): Promise<Outcome[]> {
@@ -150,7 +176,11 @@ export async function replay(fx: Fx, corpus: Corpus, settings: Settings): Promis
       if (sawState(post)) await state(post);
       // A source comment before the deadline is there at the deadline; one after the deadline is too late for the legacy bot and for the app.
       if (sourceSeconds > 0 && post.sourceCommentUtc !== null && post.sourceCommentUtc <= post.createdUtc + sourceSeconds) await sim.comment(created.id, post.author, 'Source: the artist');
-    } else if (!sawState(post)) await state(post);
+      if (beforeDeadline(post)) { // the first look of the app comes before the removal
+        await drain();
+        await state(post);
+      }
+    } else if (!sawState(post) && !beforeDeadline(post)) await state(post);
     await drain();
   }
 
@@ -166,8 +196,11 @@ export async function replay(fx: Fx, corpus: Corpus, settings: Settings): Promis
     const legacyItems = legacyAll.filter(({ rule }) => rule !== 'repost');
     const repost = legacyAll.length > legacyItems.length ? ['repost'] : [];
     if (repost.length === 0 && legacy === awb) return { id: post.id, legacy, awb, verdict: 'equal', codes: [] };
+    if (legacy === undefined && legacyDidNotLook(post, settings)) return { id: post.id, legacy, awb, verdict: 'unknown', codes: ['legacy did not look'] };
+    if (legacy === undefined && automodTimeUnknown(post)) return { id: post.id, legacy, awb, verdict: 'unknown', codes: ['AutoModerator removal time not in the corpus'] };
     const peers = windowSeconds > 0 && posts.some((other) => other !== post && other.author === post.author && Math.abs(other.createdUtc - post.createdUtc) < windowSeconds);
-    const explained = reconcile(legacyItems, items(awb), { peers, external: isExternal(post) });
+    const titleLost = post.legacy.removedBy === 'reddit' && !TAG.test(post.title);
+    const explained = reconcile(legacyItems, items(awb), { peers, external: isExternal(post), titleLost });
     const codes = explained && [...repost, ...explained];
     return { id: post.id, legacy, awb, verdict: codes === undefined ? 'differs' : codes.length === 0 ? 'equal' : 'explained', codes: codes ?? [] };
   });
@@ -189,6 +222,9 @@ export const digest = (outcomes: Outcome[]): string =>
 
 /** The corpora that a release needs (AC3, 7.6): at least 200 posts of r/Animewallpaper and, until OD11 is decided, 10 of r/AnimePhoneWallpapers. */
 export const RELEASE_CORPORA: Record<string, number> = { animewallpaper: 200, animephonewallpapers: 10 };
+/** The posts of each real corpus that the replay cannot compare (verdict unknown), each read by a person (plan 19, iteration 3). A new one fails
+ * the check until a person reads it and adds it here. */
+export const KNOWN_UNKNOWN: Record<string, string[]> = { animewallpaper: ['p00174', 'p00216', 'p00219', 'p00295'], animephonewallpapers: [] };
 
 /** What is wrong with the real corpora: `posts` gives the number of posts of each corpus file, undefined for a file that is missing. */
 export const corpusProblems = (posts: Record<string, number | undefined>): string[] =>

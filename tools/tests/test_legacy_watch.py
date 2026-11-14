@@ -136,14 +136,15 @@ class FakeReddit:
 
     def __init__(self):
         self.messages = []
-        self.modmail = SimpleNamespace(conversations=self.conversations)
+        self.modmail = SimpleNamespace(conversations=self.conversations, create=self.create)
+        self.user = SimpleNamespace(me=lambda: "awb_bot")
 
     def subreddit(self, name):
         self.name = name
         return self
 
-    def message(self, *, subject, message):
-        self.messages.append((self.name, subject, message))
+    def create(self, *, subject, body, recipient):
+        self.messages.append((self.name, subject, body, recipient))
 
     def conversations(self, *, state=None, limit=None):
         return [SimpleNamespace(subject=f"{state} one"), SimpleNamespace(subject=f"{state} two")]
@@ -152,17 +153,16 @@ class FakeReddit:
 def test_modmail_functions_use_the_praw_calls():
     reddit = FakeReddit()
     send_modmail(reddit, "Animewallpaper", "subject", "body")
-    assert reddit.messages == [("Animewallpaper", "subject", "body")]
+    assert reddit.messages == [("Animewallpaper", "subject", "body", "awb_bot")]  # to the bot: Reddit refuses a PM to /r/<sub>
     assert modmail_subjects(reddit, "Animewallpaper") == ["all one", "all two", "mod one", "mod two"]
 
 
 def test_praw_has_the_calls_that_the_modmail_functions_make():
-    from praw.models import Subreddit
     from praw.models.reddit.subreddit.modmail import Modmail
 
     keyword_only = inspect.Parameter.KEYWORD_ONLY
-    message = inspect.signature(Subreddit.message).parameters
-    assert message["subject"].kind == message["message"].kind == keyword_only
+    create = inspect.signature(Modmail.create).parameters
+    assert create["subject"].kind == create["body"].kind == create["recipient"].kind == keyword_only
     conversations = inspect.signature(Modmail.conversations).parameters
     assert conversations["state"].kind == keyword_only and "generator_kwargs" in conversations  # limit goes there
 

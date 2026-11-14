@@ -24,7 +24,7 @@ praw.ini (for example ~/.config/praw.ini, section [DEFAULT], chmod 600):
   praw_client_id, praw_client_secret, praw_refresh_token   (legacy .env names: AWB_CLIENT_ID, AWB_CLIENT_SECRET, AWB_TOKEN)
   or, for a script app: praw_client_id, praw_client_secret, praw_username, praw_password
 The account must moderate the subreddit with the Mail permission. A refresh token needs the scopes
-privatemessages, modmail and read. If --self-test prints FAIL with a scope or permission error, make a new token.
+identity, modmail and read. If --self-test prints FAIL with a scope or permission error, make a new token.
 PRAW also reads ./praw.ini of the current folder: run the tool from a folder that only you control.
 """
 
@@ -145,7 +145,9 @@ def count_posts(sub, since, until, query=mysql):
 
 
 def send_modmail(reddit, sub, subject, body):
-    reddit.subreddit(sub).message(subject=subject, message=body)
+    # Reddit refuses a private message to /r/<sub> (USER_DOESNT_EXIST on 'to'), so the subreddit opens a modmail
+    # conversation with the bot account. Reddit most likely puts it in the Mod Discussions tab (a moderator is the recipient).
+    reddit.subreddit(sub).modmail.create(subject=subject, body=body, recipient=reddit.user.me())
 
 
 def modmail_subjects(reddit, sub):

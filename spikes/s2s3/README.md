@@ -31,7 +31,7 @@ Run all commands in this folder: `cd spikes/s2s3`. Do not run `npx devvit init` 
 Reddit needs the links before it reviews a domain request.
 
 1. Open https://developers.reddit.com/apps/animewallpaperbotv3.
-2. In the app details form, save the public URL of the Terms (`TERMS.md` of the repo) and the public URL of the Privacy policy (`PRIVACY.md` of the repo).
+2. In the app details form, save the public URL of the Terms (the r/Animewallpaper wiki page `awb-terms`) and the public URL of the Privacy policy (the wiki page `awb-privacy`). These pages are copies of `TERMS.md` and `PRIVACY.md`; when you change a file, update its page. In the copies, the link to `PRIVACY.md` (Terms) and to `TERMS.md` (Privacy) must be the full page URLs (`https://www.reddit.com/r/Animewallpaper/wiki/awb-privacy` and `.../wiki/awb-terms`). Open both pages when you are not logged in: each must show, and its link must work.
 
 ## Step 2. Make the test files
 

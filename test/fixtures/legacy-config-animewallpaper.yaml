@@ -1,6 +1,6 @@
-# Live legacy `awb` wiki config (owner export 2026-11-07); usernames except AutoModerator replaced.
+# Anonymized copy of the live `awb` wiki page of r/Animewallpaper (tools/capture_fixtures.py): usernames except AutoModerator are the pseudonyms of the corpus; comments are dropped.
 enabled: true
-flairs: 
+flairs:
   Mobile: vertical
   Desktop: horizontal
   Animated: skip
@@ -30,5 +30,5 @@ RepostAny:
   threshold_months: 6
 except_authors:
 - AutoModerator
-- user1
-- user2
+- user00001
+- user00002

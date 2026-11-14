@@ -63,7 +63,7 @@ const DEFAULTS = {
 // legacy-config-animewallpaper.yaml
 const ANIMEWALLPAPER = {
   mode: 'dry-run',
-  exceptAuthors: 'AutoModerator,user1,user2',
+  exceptAuthors: 'AutoModerator,user00001,user00002',
   flairRules: 'Mobile: vertical\nDesktop: horizontal\nAnimated: skip\nMisc: skip',
   resolutionMismatch: true,
   resolutionBad: true,
@@ -94,7 +94,7 @@ const ANIMEPHONEWALLPAPERS = {
 
 // The stdout of the command line for the first page, as a mod reads it.
 const ANIMEWALLPAPER_STDOUT = `mode: dry-run
-exceptAuthors: AutoModerator,user1,user2
+exceptAuthors: AutoModerator,user00001,user00002
 flairRules:
   Mobile: vertical
   Desktop: horizontal

@@ -1,6 +1,6 @@
-# Live legacy `awb` wiki config (owner export 2026-11-07); usernames except AutoModerator replaced.
+# Anonymized copy of the live `awb` wiki page of r/AnimePhoneWallpapers (tools/capture_fixtures.py): usernames except AutoModerator are the pseudonyms of the corpus; comments are dropped.
 enabled: true
-flairs: 
+flairs:
   Wallpaper: vertical
   Request: skip
   Fulfilled: skip

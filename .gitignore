@@ -15,3 +15,7 @@ spike-logs*.jsonl
 spike-images/
 .pytest_cache/
 .env
+# owner backups of fixtures can hold test/fixtures/private/ files
+*.zip
+*.tar*
+*.7z
