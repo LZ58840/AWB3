@@ -17,14 +17,14 @@
     "lint": "vitest run test/lint"
   },
   "devDependencies": {
-    "@devvit/protos": "0.15.2",
-    "@devvit/redis": "0.15.2",
-    "@devvit/settings": "0.15.2",
-    "@devvit/shared-types": "0.15.2",
-    "@devvit/test": "0.15.2",
+    "@devvit/protos": "0.15.3",
+    "@devvit/redis": "0.15.3",
+    "@devvit/settings": "0.15.3",
+    "@devvit/shared-types": "0.15.3",
+    "@devvit/test": "0.15.3",
     "@types/node": "26.6.6",
     "@vitest/coverage-v8": "5.1.0",
-    "devvit": "0.15.2",
+    "devvit": "0.15.3",
     "esbuild": "0.28.2",
     "fast-check": "4.10.2",
     "ioredis-mock": "8.13.1",
@@ -34,7 +34,7 @@
     "vitest": "5.1.0"
   },
   "dependencies": {
-    "@devvit/web": "0.15.2",
+    "@devvit/web": "0.15.3",
     "fast-png": "8.0.0",
     "fflate": "0.8.3",
     "hono": "4.13.17",
