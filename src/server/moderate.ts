@@ -83,7 +83,7 @@ async function rateCandidates(post: Post, hours: number): Promise<RateCandidate[
     async ({ member, score }): Promise<RateCandidate> => {
       const other = await getPost(member);
       return other
-        ? { id: member, createdAt: score, removed: other.removed, spam: other.spam, approved: other.approved, removedBy: other.removedBy, removedByCategory: other.removedByCategory }
+        ? { id: member, createdAt: score, removed: other.removed, spam: other.spam, approved: other.approved, removedBy: other.removedBy, removedByCategory: other.removedByCategory, authorName: other.authorName }
         : { id: member, createdAt: score, removed: false, spam: false, approved: false, removedByCategory: 'deleted' };
     },
   );
@@ -91,6 +91,9 @@ async function rateCandidates(post: Post, hours: number): Promise<RateCandidate[
 
 // An image that is not valid yet: it would count if its status were valid (GalleryMediaStatus.VALID is 1).
 function hasPendingImages(post: Post, parent: Post | undefined, images: PostImage[]): boolean {
+  // S2 (2026-11-15): an 8K PNG had, for some minutes, no gallery entry (single image) or entries with status 0 and no URL (gallery).
+  const source = post.crosspostParentId ? parent : post;
+  if (source && IMAGE_POST.test(source.url) && !NOT_PNG_OR_JPG.test(source.url) && (source.gallery.length === 0 || source.gallery.some((g) => g.status !== 1))) return true;
   const asValid = (p: Post): ImageSource => ({ url: p.url, crosspostParentId: p.crosspostParentId, gallery: p.gallery.map((g) => ({ ...g, status: 1 })) });
   return postImages(asValid(post), parent && asValid(parent)).length > images.length;
 }
@@ -237,6 +240,8 @@ async function moderateNew(run: Run): Promise<Outcome> {
     rec.status = 'skipped:mode-off';
     return {};
   }
+  // Legacy counted all the posts of an author, also when the rule was off; the rule can be switched on later. Before the image wait, so that a later post counts this one.
+  if (post.authorId) await recordRate(post.authorId, post.id, rec.createdAt, (cfg.rateLimit?.hours ?? NUMBER_SETTINGS.rateLimitHours.def) * HOUR);
   const parent = post.crosspostParentId ? await getPost(post.crosspostParentId) : undefined;
   const images = postImages(post, parent);
   if (hasPendingImages(post, parent, images)) {
@@ -262,8 +267,6 @@ async function moderateNew(run: Run): Promise<Outcome> {
   }
 
   if (images.length > 0) await recordSeen(post.id, rec.createdAt, repostMonths);
-  // Legacy counted all the posts of an author, also when the rule was off; the rule can be switched on later.
-  if (post.authorId) await recordRate(post.authorId, post.id, rec.createdAt, (cfg.rateLimit?.hours ?? NUMBER_SETTINGS.rateLimitHours.def) * HOUR);
   const reason = skipReason(cfg, rec.firstMode, skipInput(post), appUserId);
   if (reason) {
     rec.status = `skipped:${reason}`;

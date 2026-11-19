@@ -51,7 +51,7 @@ async function probeFetch(id: string, urls: { from: string; url: string; width: 
   const smallest = urls.filter(({ url }) => FETCH_HOST.test(url)).sort((a, b) => a.width * a.height - b.width * b.height)[0];
   if (!smallest) return log({ s6: 'fetch', at: Date.now(), id, skipped: 'no i.redd.it or preview.redd.it URL' });
   const result = await attempt(async () => {
-    const res = await fetch(smallest.url, { headers: { Accept: 'image/jpeg' }, redirect: 'error' });
+    const res = await fetch(smallest.url, { headers: { Accept: 'image/jpeg' }, redirect: 'error', signal: AbortSignal.timeout(10_000) }); // a hang gives an error line
     const answer = { status: res.status, contentType: res.headers.get('content-type'), contentLength: res.headers.get('content-length') };
     if (Number(answer.contentLength) > MAX_BODY) {
       await res.body?.cancel();
@@ -105,8 +105,12 @@ app.post('/internal/triggers/:name', async (c) => {
   return c.json({});
 });
 
+// The first line of each menu request: if a request writes nothing else, it shows whether the request reached the app (S4).
 const menu = (path: string, handler: (request: MenuItemRequest, c: Context) => Promise<string>) =>
-  app.post(path, async (c) => c.json<UiResponse>({ showToast: await handler(await c.req.json<MenuItemRequest>(), c) }));
+  app.post(path, async (c) => {
+    log({ menu: path, at: Date.now(), start: true, rssMb: rssMb() });
+    return c.json<UiResponse>({ showToast: await handler(await c.req.json<MenuItemRequest>(), c) });
+  });
 
 menu('/internal/menu/dump-post', async ({ targetId }) => {
   await dumpPost(targetId as T3, 'menu');
@@ -227,11 +231,16 @@ async function decodeSteps(width: number, height: number, name: string) {
 
 const EMPTY_WASM = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]); // the smallest valid module
 
+// Three items, so that each stays well under the 30 s of a request (the first build did all in one and logged nothing).
 menu('/internal/menu/probe-limits', async () => {
   log({ s4: 'wasm', at: Date.now(), ...(await timed(() => WebAssembly.instantiate(EMPTY_WASM))) });
-  await probeDecode(3840, 2160); // first: the request ends at 30 s, and this is the result that the plan checks (< 3 s)
   await probeRedis();
-  return 'S4: logged Redis, WebAssembly and the 4K decode';
+  return 'S4: logged WebAssembly and Redis';
+});
+
+menu('/internal/menu/probe-decode-4k', async () => {
+  await probeDecode(3840, 2160); // the result that the plan checks (< 3 s)
+  return 'S4: logged the 4K decode';
 });
 
 menu('/internal/menu/probe-decode-8k', async () => {

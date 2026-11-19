@@ -11,8 +11,10 @@ export function serve(app: { fetch: (request: Request) => Response | Promise<Res
       for (const [name, value] of Object.entries(req.headers)) if (value !== undefined) headers.set(name, [value].flat().join(', '));
       const body = req.method === 'GET' || req.method === 'HEAD' ? undefined : Buffer.concat(chunks);
       const response = await app.fetch(new Request(new URL(req.url ?? '/', 'http://localhost'), { method: req.method, headers, body }));
-      res.writeHead(response.status, Object.fromEntries(response.headers));
-      res.end(Buffer.from(await response.arrayBuffer()));
+      // Devvit refuses a nonempty answer without Content-Length; writeHead alone sends the body chunked, with no length.
+      const payload = Buffer.from(await response.arrayBuffer());
+      res.writeHead(response.status, { ...Object.fromEntries(response.headers), ...(payload.length ? { 'content-length': payload.length } : {}) });
+      res.end(payload);
     } catch (error) {
       console.error(`server error; ${(error as Error).stack}`);
       res.writeHead(500, { 'content-type': 'application/json' }).end(JSON.stringify({ error: String(error) }));

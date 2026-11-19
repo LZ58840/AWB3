@@ -22,8 +22,11 @@ const T0 = 1_790_000_000_000; // creation of the first post, in ms
 const SUBMIT1 = T0 + 2100;
 const iso = (ms: number) => new Date(ms).toISOString();
 
-const user = ({ id, name }: { id: string; name: string }, accountType = 1) => ({ id, name, url: `/user/${name}/`, accountType, karma: 3 });
-const subreddit = { id: SUB.id, name: SUB.name, permalink: `/r/${SUB.name}/`, type: 1, rating: 0 };
+// Free text that names no id but identifies the account (the S3 capture of 2026-11-15 had all four).
+const user = ({ id, name }: { id: string; name: string }, accountType = 1) => ({
+  id, name, url: `/user/${name}/`, accountType, karma: 630_917, description: 'You know who I am.', iconImage: 'https://styles.redditmedia.com/t5_1x/styles/profileIcon_q1w2e3.png', snoovatarImage: '',
+});
+const subreddit = { id: SUB.id, name: SUB.name, permalink: `/r/${SUB.name}/`, type: 1, rating: 0, title: 'Private Testing Hub', description: 'For approved u/LZ588XX users.' };
 const postV2 = (id: string, title: string, over: object = {}) => ({
   id, title, authorId: POSTER.id, subredditId: SUB.id, createdAt: T0, url: 'https://i.redd.it/m4g1c0n1.png', crowdControlLevel: 0, distinguished: 0,
   permalink: `/r/${SUB.name}/comments/${id.slice(3)}/${title.toLowerCase().replace(/\W+/g, '_')}/`, ...over,
@@ -132,7 +135,7 @@ test('a fixture has the keys and value types of the body that Reddit sent, and i
 test('ids and names are replaced in every fixture and in the printed tables, and the original is left nowhere', () => {
   const texts = [...files().map((name) => join(out, name)), ...files('unmodeled').map((name) => join(out, 'unmodeled', name))].map((path) => readFileSync(path, 'utf8'));
   const everything = [...texts, stdout.replaceAll(work, '')].join('\n').toLowerCase();
-  for (const secret of ['LZ58840', 'LZ58841', 'LZ58842', 'animewallpaperbotv3', '1abcd2', '3automd', '2zzzz9', '1a2b3c', '4d5e6f', '7g8h9i', '9q8w7e', 'c0mm3n']) {
+  for (const secret of ['LZ58840', 'LZ58841', 'LZ58842', 'animewallpaperbotv3', '1abcd2', '3automd', '2zzzz9', '1a2b3c', '4d5e6f', '7g8h9i', '9q8w7e', 'c0mm3n', 'You know who', 'profileIcon_q1w2e3', 'Testing Hub', 'LZ588XX', '630917']) {
     expect(everything, secret).not.toContain(secret.toLowerCase());
   }
   expect(everything).toContain('automoderator'); // the Reddit account that filters posts keeps its name

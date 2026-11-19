@@ -75,7 +75,7 @@ test('remove by the post, by the client and as spam; removing a comment; each lo
   await reddit.remove(b.id, false);
   await reddit.remove(c.id, true);
   expect(await reddit.getPostById(a.id)).toMatchObject({ removed: true, spam: false, removedBy: APP, removedByCategory: 'moderator' });
-  expect(await reddit.getPostById(c.id)).toMatchObject({ removed: true, spam: true });
+  expect(await reddit.getPostById(c.id)).toMatchObject({ removed: false, spam: true }); // S2: a removal as spam is not `removed`
   const comment = await reddit.submitComment({ id: a.id, text: 'x' });
   await reddit.remove(comment.id, false);
   expect((await reddit.getCommentById(comment.id)).removed).toBe(true);
@@ -183,7 +183,7 @@ test('the actors of the world: author delete, AutoMod filter, flair change, user
   expect((await reddit.getPostById(id)).flair?.text).toBe('Mobile');
   world.addComment({ postId: id, author: 'alice', body: 'src' });
   world.userDelete(id);
-  expect(await reddit.getPostById(id)).toMatchObject({ removedByCategory: 'deleted', removed: false, spam: false });
+  expect(await reddit.getPostById(id)).toMatchObject({ authorName: '[deleted]', authorId: undefined, url: '', gallery: [], removedByCategory: undefined, removed: false, spam: false }); // S2
   const filtered = post().id;
   world.automodFilter(filtered);
   expect(await reddit.getPostById(filtered)).toMatchObject({ removed: true, removedBy: 'AutoModerator', removedByCategory: 'automod_filtered', approved: false });

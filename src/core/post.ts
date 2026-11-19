@@ -1,7 +1,9 @@
 import type { Config, Mode, Orientation, PostImage, PostState, Size } from './types';
 
+// Devvit shows an author delete as authorName '[deleted]' with no removal field (S2, 2026-11-15); the categories are the legacy (PRAW) form.
+// shortcut: a live post of a deleted account also counts as deleted (skipped, as the legacy hotfix of 2026-11-14); split them if Reddit gives a field for it.
 export const isDeleted = (p: PostState): boolean =>
-  p.removedByCategory === 'deleted' || p.removedByCategory === 'author';
+  p.authorName === '[deleted]' || p.removedByCategory === 'deleted' || p.removedByCategory === 'author';
 
 // Equals legacy `banned_by is not None` (L§4(b)). An empty category ("") means "not set".
 export const isRemoved = (p: PostState): boolean => p.removed || p.spam || (!!p.removedByCategory && !isDeleted(p));

@@ -55,7 +55,7 @@ const REMOVAL = 'comment,distinguish,lock,remove';
 const closed = (sim: Sim) =>
   new Set<string>(
     [...sim.world.posts.values()]
-      .filter((p) => p.approved || p.removedByCategory === 'deleted' || (p.removed && p.removedBy !== sim.world.app.name && p.removedByCategory !== 'automod_filtered'))
+      .filter((p) => p.approved || p.deleted || ((p.removed || p.spam) && p.removedBy !== sim.world.app.name && p.removedByCategory !== 'automod_filtered'))
       .map((p) => p.id),
   );
 

@@ -15,6 +15,7 @@ export interface PostState {
   approved: boolean;
   removedBy?: string;
   removedByCategory?: string;
+  authorName?: string; // '[deleted]' after an author delete, and for a post of a deleted account
 }
 
 /** One checked image. `n` is its 1-based position in the gallery. */

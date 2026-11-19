@@ -40,7 +40,7 @@ test('gallery, link and crosspost posts set their flags', () => {
   const link = postSubmit(post({ kind: 'link', url: 'https://example.com/a.jpg', gallery: [] }), alice, sub).post!;
   expect([link.isImage, link.isGallery, link.url]).toEqual([false, false, 'https://example.com/a.jpg']);
   expect(postSubmit(post({ kind: 'crosspost', crosspostParent: 't3_p0', gallery: [] }), alice, sub).post!.crosspostParentId).toBe('t3_p0');
-  expect(postSubmit(post({ flair: undefined }), alice, sub).post!.linkFlair).toBeUndefined();
+  expect(postSubmit(post({ flair: undefined }), alice, sub).post!.linkFlair).toMatchObject({ text: '' });
 });
 
 test('PostFlairUpdate carries the updater as author', () => {
@@ -50,7 +50,7 @@ test('PostFlairUpdate carries the updater as author', () => {
 test('PostDelete: numeric source enum, ISO times, no body, author is the post author', () => {
   const event = postDelete(post(), alice, sub, 'MODERATOR', T + 60_000);
   expect(event).toEqual({
-    type: 'PostDelete', postId: 't3_p1', source: 3, reason: 0,
+    type: 'PostDelete', postId: 't3_p1', source: 3, reason: 4,
     deletedAt: '2026-12-08T10:01:00.000Z', createdAt: '2026-12-08T10:00:00.000Z',
     author: expect.objectContaining({ id: 't2_alice' }), subreddit: expect.objectContaining({ id: 't5_wallpapers' }),
   });
@@ -80,14 +80,17 @@ const shape = (value: unknown, path = '$'): Record<string, string> => {
   if (value && typeof value === 'object') return Object.assign({}, ...Object.entries(value).map(([key, v]) => shape(v, `${path}.${key}`)), { [path]: 'object' });
   return { [path]: value === null ? 'null' : typeof value };
 };
+// The user flair of an author: present only when the user has one (S3), and the app does not read it.
+const USER_FLAIR = /^\$\.(?:author\.flair|post\.authorFlair)(?:\.|$)/;
 const sameShape = (real: unknown, built: unknown) => {
   const [r, b] = [shape(real), shape(built)];
-  return Object.keys({ ...r, ...b }).filter((path) => r[path] !== b[path]).map((path) => `${path}: captured ${r[path] ?? 'missing'}, built ${b[path] ?? 'missing'}`);
+  return Object.keys({ ...r, ...b }).filter((path) => r[path] !== b[path] && !USER_FLAIR.test(path)).map((path) => `${path}: captured ${r[path] ?? 'missing'}, built ${b[path] ?? 'missing'}`);
 };
 
 test('sameShape reports a missing key, an extra key and a changed type', () => {
   expect(sameShape({ a: 1, b: { c: 'x' }, d: [1] }, { a: 2, b: { c: 'y' }, d: [] })).toEqual([]);
   expect(sameShape({ a: 1, b: 'x' }, { a: '1', c: 1 })).toEqual(['$.a: captured number, built string', '$.b: captured string, built missing', '$.c: captured missing, built number']);
+  expect(sameShape({ author: { flair: { text: 'x' } }, post: { authorFlair: {}, authorFlairs: 1 } }, { author: {}, post: {} })).toEqual(['$.post.authorFlairs: captured number, built missing']);
 });
 
 const SAMPLE = {

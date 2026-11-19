@@ -1,0 +1,35 @@
+{
+  "action": "dev_platform_app_changed",
+  "actionedAt": "2026-11-15T22:38:23.968Z",
+  "subreddit": {
+    "id": "t5_sub1",
+    "name": "subname1",
+    "nsfw": false,
+    "type": 4,
+    "spam": false,
+    "quarantined": false,
+    "topics": [
+      "Unclassified"
+    ],
+    "rating": 0,
+    "subscribersCount": 3,
+    "permalink": "/r/subname1",
+    "title": "redacted",
+    "description": "redacted"
+  },
+  "moderator": {
+    "id": "t2_user2",
+    "name": "subname1",
+    "isGold": false,
+    "snoovatarImage": "",
+    "url": "https://www.reddit.com/user/subname1",
+    "spam": false,
+    "banned": false,
+    "karma": 1,
+    "iconImage": "redacted",
+    "description": "redacted",
+    "suspended": false,
+    "accountType": 1
+  },
+  "type": "ModAction"
+}

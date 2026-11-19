@@ -6,7 +6,7 @@ const SKIPPED_RECHECK_MS = 48 * 3_600_000;
 
 export async function onPostSubmit({ post }: OnPostSubmitRequest): Promise<void> {
   if (!post) throw new Error('PostSubmit has no post');
-  await enqueue({ kind: 'new', postId: post.id }, Date.now()); // not createdAt of the payload: its unit is checked by S3
+  await enqueue({ kind: 'new', postId: post.id }, Date.now()); // the queue time; the post time (ms in the payload, S3) is read with the post
 }
 
 /** A post that was skipped and is under 48 hours old gets a second look: its flair is the reason that it was skipped, or that it fails (legacy L§1.0). */

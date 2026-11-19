@@ -236,7 +236,7 @@ test('modRemove, userDelete and automodFilter send PostDelete with their source;
   expect(deletes).toEqual([[a.id, 3], [b.id, 1], [loud.id, 3]]);
   expect(await reddit.getPostById(quiet.id)).toMatchObject({ removed: true, removedByCategory: 'automod_filtered' });
   expect(await reddit.getPostById(a.id)).toMatchObject({ removedBy: 'mod1', removedByCategory: 'moderator' });
-  expect(await reddit.getPostById(b.id)).toMatchObject({ removedByCategory: 'deleted' });
+  expect(await reddit.getPostById(b.id)).toMatchObject({ authorName: '[deleted]', authorId: undefined, removedByCategory: undefined }); // S2
   await sim.approve(a.id);
   expect(await reddit.getPostById(a.id)).toMatchObject({ approved: true, removed: false, removedByCategory: undefined });
 });

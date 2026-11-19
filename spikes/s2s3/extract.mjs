@@ -60,10 +60,14 @@ for (const o of walk(records)) {
   for (const key of ['subreddit', 'subredditName']) if (typeof o[key] === 'string') give(o[key], 'subname');
 }
 const names = new RegExp(`(?<![\\w-])(?:${[...alias.keys()].sort((a, b) => b.length - a.length).map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})(?![\\w-])`, 'gi');
+// Free text of a profile or a subreddit has no id, but it identifies the account: the key and its type stay, the text goes.
+const FREE_TEXT = new Set(['description', 'iconImage', 'snoovatarImage']);
+const freeText = (owner, key, v) => typeof v === 'string' && v !== '' && (FREE_TEXT.has(key) || (key === 'title' && /^t5_/.test(owner.id ?? '')));
 const anon = (value) =>
   typeof value === 'string' ? (alias.size ? value.replace(names, (m) => alias.get(m.toLowerCase())) : value)
   : Array.isArray(value) ? value.map(anon)
-  : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).map(([key, v]) => [key, anon(v)]))
+  : value && typeof value === 'object'
+    ? Object.fromEntries(Object.entries(value).map(([key, v]) => [key, freeText(value, key, v) ? 'redacted' : key === 'karma' && typeof v === 'number' ? 1 : anon(v)])) // karma can identify an account
   : value;
 const data = anon(records);
 

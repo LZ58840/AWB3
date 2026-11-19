@@ -167,6 +167,52 @@ test('an image that becomes valid while the app waits is checked at once', async
   expect((await recordOf(sim, post.id))?.items.new?.mediaWaits).toBe(1);
 });
 
+// S2 (2026-11-15): Reddit gave an 8K PNG no image data at first; minutes later the data was complete. Two forms: a single image
+// has a URL with no extension and no gallery entry; a gallery has entries with status 0 and no URL.
+const UNFINISHED = [
+  ['a single image with no gallery entry and no extension', (p: { url: string; gallery: unknown[] }) => Object.assign(p, { url: p.url.replace(/\.png$/, ''), gallery: [] })],
+  ['a gallery with entries of status 0 and no URL', (p: { gallery: { url: string; width: number; height: number; status: number }[] }) =>
+    Object.assign(p, { gallery: p.gallery.map((g) => ({ ...g, url: '', width: 0, height: 0, status: 0 })) })],
+] as const;
+for (const [name, unfinished] of UNFINISHED) test(`an image that Reddit has not started (${name}) is awaited, then checked`, async (fx) => {
+  const sim = createSim(app, fx);
+  sim.install(SUB, { mode: 'enforce', ...rule });
+  const post = await sim.submit({ images: name.startsWith('a gallery') ? [small, { width: 1920, height: 1080 }] : [small] });
+  const world = sim.world.posts.get(post.id)!;
+  const done = { url: world.url, gallery: world.gallery };
+  unfinished(world as never);
+  await sim.advance('1m');
+  expect(sim.actions(post.id)).toEqual([]);
+  Object.assign(world, done);
+  await sim.advance('1m');
+  expect(sim.actions(post.id)).toEqual(REMOVAL(comment(BAD_RESOLUTION)));
+});
+
+test('a post that waits for its image counts at once for the rate limit of a later post of the author', async (fx) => {
+  const sim = createSim(app, fx);
+  sim.install(SUB, { mode: 'enforce', rateLimit: true, rateLimitHours: 24, rateLimitPosts: 1 });
+  const first = await sim.submit({ images: [{ ...small, status: 0 }] });
+  await sim.advance('1m');
+  const second = await sim.submit({ images: [small] });
+  await sim.advance('2m');
+  expect(sim.actions(first.id)).toEqual([]); // still waiting
+  expect(sim.actions(second.id)).toContainEqual({ type: 'remove', spam: false });
+});
+
+test('a crosspost waits for an unstarted image of its parent; a GIF with no gallery entry does not wait', async (fx) => {
+  const sim = createSim(app, fx);
+  sim.install(SUB, { mode: 'enforce', ...rule });
+  const parent = await sim.submit({ images: [small] });
+  Object.assign(sim.world.posts.get(parent.id)!, { url: 'https://i.redd.it/abc123', gallery: [] });
+  const gif = await sim.submit({ images: [{ ...small, url: 'https://i.redd.it/x.gif' }] });
+  sim.world.posts.get(gif.id)!.gallery = [];
+  await sim.advance('1m');
+  const cross = await sim.submit({ crosspostOf: parent.id });
+  await sim.advance('2m');
+  expect((await recordOf(sim, cross.id))?.items.new?.mediaWaits).toBeGreaterThan(0);
+  expect((await recordOf(sim, gif.id))?.items.new?.mediaWaits ?? 0).toBe(0);
+});
+
 // Each post waits for its image, so that its first look and its decision happen in different modes.
 const firstLook = async (sim: Sim, mode: string, then: Record<string, string>) => {
   const inst = sim.install(SUB, { mode, ...rule });

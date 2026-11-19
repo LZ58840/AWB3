@@ -30,7 +30,10 @@ test('a request of Devvit reaches the app with its body and its context, and the
     const ok = await send('/internal/echo', { a: [1, 2] });
     expect(ok.status).toBe(201);
     expect(ok.headers.get('content-type')).toContain('application/json');
-    expect(await ok.json()).toEqual({ body: { a: [1, 2] }, sub: 'Animewallpaper', user: 'mod1' });
+    // Devvit (fetch-webbit.js of @devvit/build-pack) refuses a nonempty answer without a Content-Length above 0.
+    const text = await ok.text();
+    expect(ok.headers.get('content-length')).toBe(String(Buffer.byteLength(text)));
+    expect(JSON.parse(text)).toEqual({ body: { a: [1, 2] }, sub: 'Animewallpaper', user: 'mod1' });
     const missing = await send('/internal/nothing', {});
     expect(missing.status).toBe(404);
   } finally {

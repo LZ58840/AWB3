@@ -1,10 +1,12 @@
 // In-memory Reddit. The world is a set of fake Reddit API services behind vi.spyOn(config, 'use'), so the real @devvit/reddit
 // client and its models run unchanged: a client method and a model method (post.lock()) reach the same service (S1.11).
 // A call that the world does not implement throws "not simulated", so a new API call cannot pass by accident (plan 7.2).
-// Guesses that S2 checks: a removed or filtered post is `removed` with removedBy/removedByCategory 'moderator' or
-// 'automod_filtered'; an author delete sets only removedByCategory 'deleted'; absent removal fields are undefined (the
-// harness addPost writes '' instead); /new hides removed, filtered and deleted posts; the mod queue holds filtered and
-// reported posts; which mod log entries exist (distinguish and sticky separately); a missing wiki page is a 404 error.
+// S2 confirmed (2026-11-15): a mod or app removal gives `removed`, removedBy (the mod) and removedByCategory 'moderator'; a removal as
+// spam gives `spam` (not `removed`) with the same two fields; an author delete gives author '[deleted]', no author id, url '' and
+// an empty gallery, with no removal field set; /new hides removed and deleted posts; the mod queue does not hold removed posts.
+// Still guesses: a filtered post is `removed` with removedBy 'AutoModerator' and removedByCategory 'automod_filtered', /new hides
+// it and the mod queue holds it; absent removal fields are undefined (the harness addPost writes '' instead); which mod log
+// entries exist (distinguish and sticky separately); a missing wiki page is a 404 error.
 import type { DevvitFixtures } from '@devvit/test/server/vitest';
 import type { T1, T2, T3, T5 } from '@devvit/web/shared';
 import { FlairDefinition } from '@devvit/protos/types/devvit/plugin/redditapi/flair/flair_svc.js';
@@ -62,6 +64,7 @@ export interface Post {
   spam: boolean;
   removedBy?: string;
   removedByCategory?: string;
+  deleted?: true; // the author deleted it; the API then shows the post as in postObject
   locked: boolean;
   reports: { reason: string; by: string }[];
 }
@@ -233,7 +236,7 @@ export function createWorld({ appName }: { appName: string }) {
 
   function modRemove(id: string, by: string, { spam = false } = {}) {
     const post = need(posts, id);
-    Object.assign(post, { removed: true, spam, approved: false, removedBy: by, removedByCategory: 'moderator' });
+    Object.assign(post, { removed: !spam, spam, approved: false, removedBy: by, removedByCategory: 'moderator' });
     log(spam ? 'spamlink' : 'removelink', by, post.sub, postTarget(post));
     emit('onPostDelete', post.sub, postDelete(post, addUser(post.author), subOf(post.sub), 'MODERATOR', Date.now()));
   }
@@ -281,7 +284,7 @@ export function createWorld({ appName }: { appName: string }) {
 
   function userDelete(id: string) {
     const post = need(posts, id);
-    post.removedByCategory = 'deleted';
+    post.deleted = true;
     emit('onPostDelete', post.sub, postDelete(post, addUser(post.author), subOf(post.sub), 'USER', Date.now()));
   }
 
@@ -292,13 +295,14 @@ export function createWorld({ appName }: { appName: string }) {
     if (sendDelete) emit('onPostDelete', post.sub, postDelete(post, addUser(post.author), subOf(post.sub), 'MODERATOR', Date.now()));
   }
 
-  const visible = (p: Post) => !p.removed && !p.spam && p.removedByCategory === undefined;
-  const inQueue = (p: Post) => !p.approved && (p.removedByCategory === 'automod_filtered' || (p.reports.length > 0 && p.removedByCategory === undefined));
+  const visible = (p: Post) => !p.removed && !p.spam && p.removedByCategory === undefined && !p.deleted;
+  const inQueue = (p: Post) => !p.approved && (p.removedByCategory === 'automod_filtered' || (p.reports.length > 0 && p.removedByCategory === undefined && !p.deleted));
 
   const postObject = (p: Post) => ({
-    id: p.id.slice(3), name: p.id, title: p.title, createdUtc: p.createdAt / 1000, author: p.author, ...(p.authorId ? { authorFullname: p.authorId } : {}),
-    subreddit: p.sub, subredditId: subOf(p.sub).id, url: p.url, permalink: permalinkOf(p), selftext: '', linkFlairText: p.flair,
-    gallery: p.gallery, crosspostParent: p.crosspostParent, approved: p.approved, removed: p.removed, spam: p.spam, removedBy: p.removedBy,
+    id: p.id.slice(3), name: p.id, title: p.title, createdUtc: p.createdAt / 1000, author: p.deleted ? '[deleted]' : p.author,
+    ...(p.authorId && !p.deleted ? { authorFullname: p.authorId } : {}),
+    subreddit: p.sub, subredditId: subOf(p.sub).id, url: p.deleted ? '' : p.url, permalink: permalinkOf(p), selftext: '', linkFlairText: p.flair,
+    gallery: p.deleted ? [] : p.gallery, crosspostParent: p.crosspostParent, approved: p.approved, removed: p.removed, spam: p.spam, removedBy: p.removedBy,
     removedByCategory: p.removedByCategory, locked: p.locked, modReports: p.reports.map(({ reason, by }) => [reason, by]),
     numComments: [...comments.values()].filter((c) => c.postId === p.id).length,
   });

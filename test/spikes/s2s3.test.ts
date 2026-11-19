@@ -19,10 +19,10 @@ const test = createDevvitTest(); // subreddit testsub (t5_testsub), user testuse
 type Line = Record<string, any>;
 type Mocks = DevvitFixtures['mocks'];
 
-/** Collects the JSON lines of console.log from now on. The harness undoes the spy after the test. */
-const capture = () => {
+/** Collects the JSON lines of console.log from now on, without the start line of a menu request (its own test). The harness undoes the spy after the test. */
+const capture = ({ starts = false } = {}) => {
   const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
-  return () => log.mock.calls.map(([line]) => JSON.parse(line as string) as Line);
+  return () => log.mock.calls.map(([line]) => JSON.parse(line as string) as Line).filter((line) => starts || !line.start);
 };
 const send = (path: string, body: unknown, headers: Record<string, string> = {}) =>
   app.request(path, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(body) });
@@ -48,7 +48,7 @@ test('devvit.json: the app that the owner registered, with Reddit, Redis and the
   expect(config.permissions.http).toEqual({ enable: true, domains: ['i.redd.it', 'preview.redd.it'] });
 });
 
-test('devvit.json: six triggers, six moderator menu items, a fetch switch and a select setting', () => {
+test('devvit.json: six triggers, seven moderator menu items, a fetch switch and a select setting', () => {
   expect(Object.keys(devvit.triggers)).toEqual([
     'onPostSubmit', 'onPostFlairUpdate', 'onPostDelete', 'onCommentCreate', 'onAutomoderatorFilterPost', 'onModAction',
   ]);
@@ -57,7 +57,8 @@ test('devvit.json: six triggers, six moderator menu items, a fetch switch and a 
     ['S3: app comments and removes this post', 'post', 'moderator'],
     ['S2: dump listings', 'subreddit', 'moderator'],
     ['S3: probe platform', 'subreddit', 'moderator'],
-    ['S4: probe limits', 'subreddit', 'moderator'],
+    ['S4: WebAssembly and Redis', 'subreddit', 'moderator'],
+    ['S4: decode 4K', 'subreddit', 'moderator'],
     ['S4: decode 8K', 'subreddit', 'moderator'],
   ]);
   expect(devvit.settings.subreddit).toMatchObject({ fetchProbe: { type: 'boolean', defaultValue: false }, probeSelect: { type: 'select' } });
@@ -205,7 +206,7 @@ test('S6: with fetchProbe on the app fetches the smallest i.redd.it or preview.r
   fetchPost(mocks);
   await enrichedThumbnail({ url: 'https://preview.redd.it/e.jpg', width: 640, height: 360 }); // larger than the gallery image that is chosen
   await trigger('onPostSubmit', { type: 'PostSubmit', post: { id: 't3_p1' } });
-  expect(fetch).toHaveBeenCalledExactlyOnceWith(SMALL, { headers: { Accept: 'image/jpeg' }, redirect: 'error' }); // a redirect is an error, not a second fetch
+  expect(fetch).toHaveBeenCalledExactlyOnceWith(SMALL, { headers: { Accept: 'image/jpeg' }, redirect: 'error', signal: expect.any(AbortSignal) }); // a redirect is an error, not a second fetch
   expect(lines()[2]).toEqual({
     s6: 'fetch', at: expect.any(Number), id: 't3_p1', from: 'gallery', url: SMALL, width: 320, height: 180,
     ok: { status: 200, contentType: 'image/jpeg', contentLength: '18', bytes: 18, first16: 'ffd8ffe000104a464946000101000001' },
@@ -399,19 +400,35 @@ test('extract.mjs reads what the app writes: a post trigger, the listings, the p
 });
 
 // S4: the 4K decode runs for real here (a few seconds); the 8K item calls the same function with other sizes.
-test('menu "S4: probe limits" logs WebAssembly, the 4K encode and decode, then the Redis write and each read step, each step on its own line', { timeout: 60_000 }, async ({ mocks }) => {
+test('a menu request writes a start line first, before any work (S4: a request that times out still shows that it arrived)', async () => {
+  const lines = capture({ starts: true });
+  await menu(endpointOf('S3: probe platform'), { location: 'subreddit', targetId: 't5_testsub' });
+  expect(lines()[0]).toEqual({ menu: endpointOf('S3: probe platform'), at: expect.any(Number), start: true, rssMb: expect.any(Number) });
+});
+
+// S4: the 4K decode runs for real here (a few seconds); the 8K item calls the same function with other sizes.
+test('menu "S4: decode 4K" logs the 4K encode and decode, each step on its own line', { timeout: 60_000 }, async () => {
+  const lines = capture();
+  const res = await menu(endpointOf('S4: decode 4K'), { location: 'subreddit', targetId: 't5_testsub' });
+  expect([res.status, (await res.json()).showToast]).toEqual([200, 'S4: logged the 4K decode']);
+  const got = lines();
+  expect(got.map((l) => [l.s4, l.format ?? null])).toEqual([['encode', null], ['encode', null], ['decode', 'jpeg'], ['decode', 'png']]);
+  for (const line of got) expect(line, JSON.stringify(line)).not.toHaveProperty('error');
+  for (const line of got.slice(2)) expect(line).toMatchObject({ size: '3840x2160', bytes: expect.any(Number), ms: expect.any(Number), rssMbBefore: expect.any(Number), rssMbAfter: expect.any(Number) });
+});
+
+test('menu "S4: WebAssembly and Redis" logs WebAssembly, then the Redis write and each read step, each step on its own line', { timeout: 60_000 }, async ({ mocks }) => {
   const lines = capture();
   const hGetAll = vi.spyOn(mocks.redis.plugin, 'HGetAll');
-  const res = await menu(endpointOf('S4: probe limits'), { location: 'subreddit', targetId: 't5_testsub' });
+  const res = await menu(endpointOf('S4: WebAssembly and Redis'), { location: 'subreddit', targetId: 't5_testsub' });
   expect(res.status).toBe(200);
   const got = lines();
-  expect(got.map((l) => [l.s4, l.format ?? l.step ?? null])).toEqual([
-    ['wasm', null], ['encode', null], ['encode', null], ['decode', 'jpeg'], ['decode', 'png'], ['redis-write', null],
+  expect(got.map((l) => [l.s4, l.step ?? null])).toEqual([
+    ['wasm', null], ['redis-write', null],
     ['redis', 'hGetAllSequential'], ['redis', 'hGetAllParallel'], ['redis', 'getSequential'], ['redis', 'getParallel'], ['redis', 'mGet'],
   ]);
   for (const line of got) expect(line, JSON.stringify(line)).not.toHaveProperty('error');
-  for (const line of got) expect(line.ms ?? line.jpeg?.ms ?? line.png?.ms, JSON.stringify(line)).toEqual(expect.any(Number));
-  for (const line of got.slice(3, 5)) expect(line).toMatchObject({ size: '3840x2160', bytes: expect.any(Number), rssMbBefore: expect.any(Number), rssMbAfter: expect.any(Number) });
+  for (const line of got) expect(line.ms, JSON.stringify(line)).toEqual(expect.any(Number));
   expect(hGetAll).toHaveBeenCalledTimes(70); // 35 one after the other, 35 at once
   const hash = await mocks.redis.plugin.HGetAll({ key: 'spike:s4:h0' });
   expect(Object.keys(hash.fieldValues)).toHaveLength(50);

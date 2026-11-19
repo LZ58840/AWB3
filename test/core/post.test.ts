@@ -18,6 +18,8 @@ describe('isDeleted', () => {
   it('is true for removedByCategory deleted and author', () => {
     expect(isDeleted(state({ removedByCategory: 'deleted' }))).toBe(true);
     expect(isDeleted(state({ removedByCategory: 'author' }))).toBe(true);
+    expect(isDeleted(state({ authorName: '[deleted]' }))).toBe(true); // Devvit (S2)
+    expect(isDeleted(state({ authorName: 'alice' }))).toBe(false);
   });
 
   it('is false for other categories and for none', () => {

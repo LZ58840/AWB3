@@ -1,8 +1,8 @@
-// Trigger bodies, typed with @devvit/web. S3 (plan section 2) captures the real bodies; the values below that no doc gives
-// are guesses, and the fidelity hook in events.test.ts compares keys and types with each captured body that is saved in
-// test/fixtures/payloads/. Guesses: PostV2 and CommentV2 times in epoch ms; ids with the t1/t2/t3/t5 prefix; PostDelete
-// times as ISO strings (as the JSON type says); enums as numbers; the author of PostDelete is the post author; an app user
-// has accountType APP; PostV2 galleryImages only for galleries and mediaUrls for image posts and galleries.
+// Trigger bodies, typed with @devvit/web. The fidelity hook in events.test.ts compares keys and types with each real body
+// that S3 (plan section 2) captured in test/fixtures/payloads/. S3 confirmed (2026-11-15): PostV2 and CommentV2 times in epoch
+// ms; ids with the t1/t2/t3/t5 prefix; PostDelete times as ISO strings; enums as numbers; PostDelete source USER (1) for the
+// author and MODERATOR (3) for a mod or the app, reason UNKNOWN (4); an app user has accountType APP; PostV2 has media {type: ''}.
+// Still guesses: PostV2 galleryImages only for galleries and mediaUrls for image posts and galleries (the hook does not compare array items).
 import type { OnCommentCreateRequest, OnPostDeleteRequest, OnPostFlairUpdateRequest, OnPostSubmitRequest, PostV2, SubredditV2, UserV2, CommentV2 } from '@devvit/web/shared';
 import { CrowdControlLevel, DeletionReason, DistinguishType, EventSource, SubredditRating, SubredditType } from '@devvit/web/shared';
 import { AccountTypeV2 } from '@devvit/protos/json/devvit/reddit/v2alpha/userv2.js';
@@ -43,12 +43,12 @@ export const postV2 = (post: Post, sub: Sub): PostV2 => {
     numReports: post.reports.length, isGallery: post.kind === 'gallery', isMeta: false, createdAt: post.createdAt, isApproved: post.approved,
     isArchived: false, distinguished: DistinguishType.NULL_VALUE, ignoreReports: false, isSelf: post.kind === 'text', isVideo: post.kind === 'video',
     isLocked: post.locked, isSpoiler: false, subredditId: sub.id, upvotes: 1, downvotes: 0, url: post.url, isSticky: false,
-    ...(post.flair ? { linkFlair: { text: post.flair, cssClass: '', backgroundColor: '', templateId: '', textColor: '' } } : {}),
-    spam: post.spam, deleted: post.removedByCategory === 'deleted', languageCode: 'en', updatedAt: post.createdAt, gildings: 0, score: 1,
+    linkFlair: { text: post.flair ?? '', cssClass: '', backgroundColor: '', templateId: '', textColor: '' }, // S3: also without a flair
+    spam: post.spam, deleted: post.deleted === true, languageCode: 'en', updatedAt: post.createdAt, gildings: 0, score: 1,
     numComments: 0, thumbnail: '', crosspostParentId: post.crosspostParent ?? '', permalink: permalinkOf(post), isPoll: false, isPromoted: false,
     isMultiMedia: post.kind === 'gallery' || post.kind === 'video', type: POST_TYPE[post.kind], unlisted: false,
     galleryImages: post.kind === 'gallery' ? urls : [], isImage: post.kind === 'image' || post.kind === 'gallery',
-    mediaUrls: post.kind === 'image' || post.kind === 'gallery' ? urls : [], isClubContent: false,
+    mediaUrls: post.kind === 'image' || post.kind === 'gallery' ? urls : [], isClubContent: false, media: { type: '' },
   };
 };
 
@@ -70,7 +70,7 @@ export const postFlairUpdate = (post: Post, updater: Actor, sub: Sub): OnPostFla
 /** `author` is the post author; `at` the time of the deletion. */
 export const postDelete = (post: Post, author: Actor, sub: Sub, source: keyof typeof EventSource & ('USER' | 'ADMIN' | 'MODERATOR'), at: number): OnPostDeleteRequest => ({
   type: 'PostDelete', postId: post.id, deletedAt: new Date(at).toISOString(), author: userV2(author), createdAt: new Date(post.createdAt).toISOString(),
-  source: EventSource[source], reason: DeletionReason.UNSPECIFIED_DELETION_REASON, subreddit: subredditV2(sub),
+  source: EventSource[source], reason: DeletionReason.UNKNOWN, subreddit: subredditV2(sub),
 });
 
 export const commentCreate = (comment: Comment, author: Actor, post: Post, sub: Sub): OnCommentCreateRequest => ({

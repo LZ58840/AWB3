@@ -145,10 +145,13 @@ Last, wait 5 minutes. Then click "S2: dump post" (three-dot menu of a post) on S
 
 ## Step 7b. Platform limits (S4)
 
-Use the three-dot menu of the subreddit page, as the moderator. Wait for the toast of each item before you click the next one.
+Use the three-dot menu of the subreddit page, as the moderator. Before you start, open a second terminal and run `npx devvit logs r/LZ58840 animewallpaperbotv3 --log-runtime --verbose`. Leave it open. Wait for the toast of each item before you click the next one. Each item writes a start line first, so the log shows if the request reached the app.
 
-1. Click "S4: probe limits". It takes up to 30 seconds. The toast says "S4: logged Redis, WebAssembly and the 4K decode".
-2. Click "S4: decode 8K". It takes up to 30 seconds (Devvit ends a request at 30 seconds), and it can fail with an error or a timeout. A failure is also a result. Do not click it again.
+1. Click "S4: WebAssembly and Redis". The toast says "S4: logged WebAssembly and Redis".
+2. Click "S4: decode 4K". It takes up to 30 seconds. The toast says "S4: logged the 4K decode".
+3. Click "S4: decode 8K". It takes up to 30 seconds (Devvit ends a request at 30 seconds), and it can fail with an error or a timeout. A failure is also a result. Do not click it again.
+
+If an item gives "Something went wrong", copy what the second terminal shows for it (the start line, and any line from the runtime) and give it to the agent.
 
 ## Step 8. Save the log and give it to the agent
 
