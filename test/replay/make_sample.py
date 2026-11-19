@@ -1,6 +1,6 @@
 """Makes test/fixtures/legacy-corpus-sample.json: a small replay corpus made by the transform functions of tools/capture_fixtures.py
 (Anon, group_rows, build_post, legacy_decision, scrub, tags_only, corpus_text) on INVENTED legacy rows and Reddit data.
-It is a contract fixture, like test/fixtures/backfill-sample.txt: the replay reads exactly what the tool writes.
+It is a contract fixture: the replay reads exactly what the tool writes.
 
   tools/.venv/bin/python -I test/replay/make_sample.py          (from the repo root; writes the file, prints the summary line)
   tools/.venv/bin/python -I test/replay/make_sample.py --check  (exit 1 when the file is not what the tool writes now: the contract)

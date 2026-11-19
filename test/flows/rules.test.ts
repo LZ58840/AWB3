@@ -131,6 +131,17 @@ test('R6 rate limit: a deleted post counts with rateLimitCountDeleted', async (f
   expect(await fourthPost(fx, { rateLimitCountDeleted: true }, 'delete')).toEqual(['comment', 'distinguish', 'lock', 'remove']);
 });
 
+test('R6 rate limit: a post that its author deletes before the first tick counts with rateLimitCountDeleted', async (fx) => {
+  const sim = createSim(app, fx);
+  sim.install(SUB, { mode: 'enforce', rateLimit: true, rateLimitHours: 24, rateLimitPosts: 3, rateLimitCountDeleted: true });
+  const earlier = [await sim.submit({}), await sim.submit({}), await sim.submit({})];
+  await sim.userDelete(earlier[1]!.id); // no tick has read the post yet: only its trigger has seen it
+  await sim.advance('1m', { only: [] }); // the time passes, no job runs
+  const post = await sim.submit({});
+  await sim.advance('2m');
+  expect(names(sim.actions(post.id))).toEqual(['comment', 'distinguish', 'lock', 'remove']);
+});
+
 // Three earlier posts, then Reddit forgets the second one, then a 4th post with a limit of 3.
 const forgotten = async (fx: Fx, rateLimitCountDeleted: boolean) => {
   const sim = createSim(app, fx);

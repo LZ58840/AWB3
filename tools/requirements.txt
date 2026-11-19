@@ -1,6 +1,6 @@
 # Exact versions, tested on Python 3.14.8. PRAW 8 needs Python 3.10 or newer.
 # Install: python3 -m venv tools/.venv && tools/.venv/bin/pip install -r tools/requirements.txt
-# legacy_watch.py needs praw; capture_fixtures.py needs praw and PyYAML; export_backfill_ids.py needs nothing.
+# legacy_watch.py and fetch_pairs.py need praw (it brings requests); capture_fixtures.py needs praw and PyYAML.
 # pytest is only for tools/tests. No MySQL client library: the tools run the mysql client inside the legacy container.
 certifi==2026.10.23
 charset-normalizer==3.5.2

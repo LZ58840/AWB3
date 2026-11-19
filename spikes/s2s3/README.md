@@ -13,7 +13,7 @@ The following domains are requested for this app:
 - `i.redd.it` - The AWB3 moderation app reads the image of a new post in the subreddit where it is installed. It computes a perceptual hash of the image for its repost check. This build tests that fetch.
 - `preview.redd.it` - Same use. The app fetches the smallest preview image that Reddit gives for the same post. It reads only the images of posts in the installed subreddit. It sends no user data.
 
-In this build, the fetch is off. A moderator turns it on with the setting "S6: fetch probe". When it is on, the app fetches one image for each post that it logs.
+In this build, the fetch is off. A moderator turns it on with the setting "S6: fetch probe". When it is on, the app fetches one image for each post that it logs. The moderator menu item "S4: decode this post" also fetches the image of one post, to measure the decode time.
 
 ## What you need
 
@@ -145,13 +145,25 @@ Last, wait 5 minutes. Then click "S2: dump post" (three-dot menu of a post) on S
 
 ## Step 7b. Platform limits (S4)
 
-Use the three-dot menu of the subreddit page, as the moderator. Before you start, open a second terminal and run `npx devvit logs r/LZ58840 animewallpaperbotv3 --log-runtime --verbose`. Leave it open. Wait for the toast of each item before you click the next one. Each item writes a start line first, so the log shows if the request reached the app.
+Do this as the moderator. Each S4 item writes a start line first. If a request fails, the start line shows that the request reached the app.
 
-1. Click "S4: WebAssembly and Redis". The toast says "S4: logged WebAssembly and Redis".
-2. Click "S4: decode 4K". It takes up to 30 seconds. The toast says "S4: logged the 4K decode".
-3. Click "S4: decode 8K". It takes up to 30 seconds (Devvit ends a request at 30 seconds), and it can fail with an error or a timeout. A failure is also a result. Do not click it again.
+1. Open a second terminal. Run `npx devvit logs r/LZ58840 animewallpaperbotv3 --log-runtime --verbose`. Keep it open.
+2. This step is optional. You did it already. Click "S4: WebAssembly and Redis" in the three-dot menu of the subreddit page. The toast says "S4: logged WebAssembly and Redis".
+3. Use the item "S4: decode this post" on these four posts of step 6, in this order:
+   1. `S2-04 jpg 3840x2160 single`
+   2. `S2-03 png 3840x2160 single`
+   3. `S2-06 jpg 7680x4320 single`
+   4. `S2-05 png 7680x4320 single`
 
-If an item gives "Something went wrong", copy what the second terminal shows for it (the start line, and any line from the runtime) and give it to the agent.
+   For each post: open the post, open its three-dot menu, and click "S4: decode this post". Wait for the toast before you go to the next post. The toast says "S4: logged the decode of" and the id of the post.
+
+The item fetches the image of the post and writes an `s4` line with the key `fetch`. Then it waits 1 second, so that Devvit can send the lines to the log. Last, it decodes the image and writes an `s4` line with the key `decode`. This line shows the time and the memory.
+
+The fetch works only after Reddit approved the domains (step 9). Before the approval, the `fetch` line shows the error of the fetch. That error is also a result.
+
+The decode of an 8K image can fail with an error or a timeout (Devvit ends a request at 30 seconds). A failure is also a result. Do not click the item again on the same post.
+
+If an item gives "Something went wrong", copy what the second terminal shows for it (the start line, and any line from the runtime). Give it to the agent. Then go to step 8.
 
 ## Step 8. Save the log and give it to the agent
 

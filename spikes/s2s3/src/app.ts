@@ -2,8 +2,8 @@
 // them with `devvit logs`, see ../README.md). Each line has the key s2, s3, s4 or s6. The script extract.mjs reads the lines.
 // Only the menu item "S3: app comments and removes this post" changes the subreddit.
 import { context, reddit, redis, settings, type Post } from '@devvit/web/server';
-import { decode as decodePng, encode as encodePng } from 'fast-png';
-import { decode as decodeJpeg, encode as encodeJpeg } from 'jpeg-js';
+import { decode as decodePng } from 'fast-png';
+import { decode as decodeJpeg } from 'jpeg-js';
 import type { MenuItemRequest, T3, UiResponse } from '@devvit/web/shared';
 import { Hono, type Context } from 'hono';
 
@@ -158,7 +158,7 @@ menu('/internal/menu/app-acts', async ({ targetId }) => {
   return 'S3: the app commented and removed this post';
 });
 
-// S4: platform limits without fetch. Each step writes its own line, so a timeout still leaves the steps before it in the log.
+// S4: platform limits. Each step writes its own line, so a timeout still leaves the steps before it in the log.
 const timed = async <T>(fn: () => Promise<T> | T) => {
   const start = performance.now();
   const result = await attempt(fn);
@@ -194,58 +194,54 @@ export async function probeRedis() {
   for (const [step, fn] of steps) log({ s4: 'redis', at: Date.now(), step, ...(await timed(fn)) });
 }
 
-/** A noisy gradient (a smooth image decodes faster than a real one). The app makes it, so no image file goes into the bundle. */
-const testImage = (width: number, height: number) => {
-  const data = new Uint8Array(width * height * 4);
-  let seed = 1;
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      seed = (Math.imul(seed, 1103515245) + 12345) >>> 0;
-      const i = (y * width + x) * 4;
-      const noise = (seed >>> 24) & 15;
-      data[i] = ((x * 255) / width + noise) & 255;
-      data[i + 1] = ((y * 255) / height + noise) & 255;
-      data[i + 2] = (((x + y) * 255) / (width + height) + noise) & 255;
-      data[i + 3] = 255;
+/** S4: the fetch and the decode of the image of one post. Each step writes its own line, and the app waits between the two. */
+async function probeDecode(id: T3) {
+  let step = 'fetch'; // the step that an error comes from
+  try {
+    const post = await reddit.getPostById(id);
+    const url = normalize(post.url) ?? post.gallery.map((entry) => normalize(entry.url)).find(Boolean);
+    if (!url) return log({ s4: 'fetch', at: Date.now(), id, skipped: 'no i.redd.it or preview.redd.it URL' });
+    const fetchStart = performance.now();
+    const res = await fetch(url, { headers: { Accept: 'image/jpeg' }, redirect: 'error', signal: AbortSignal.timeout(10_000) });
+    const chunks: Uint8Array[] = [];
+    let bytes = 0;
+    for await (const chunk of res.body ?? []) { // a throw in the loop cancels the rest of the stream
+      bytes += chunk.byteLength;
+      if (bytes > MAX_BODY) throw new Error('the body is over 20 MiB');
+      chunks.push(chunk);
     }
+    log({ s4: 'fetch', at: Date.now(), id, url, status: res.status, contentType: res.headers.get('content-type'), bytes, ms: Math.round(performance.now() - fetchStart) });
+    // Devvit sends the log lines in the background. The decode blocks the event loop, and a request that is killed then loses the lines
+    // that were not sent. This wait lets the start line and the fetch line go out first.
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    step = 'decode';
+    const body = Buffer.concat(chunks);
+    const magic = body.toString('hex', 0, 4);
+    const png = magic === '89504e47';
+    if (!png && !magic.startsWith('ffd8')) throw new Error(`not a PNG or JPEG (first bytes ${magic})`);
+    const rssMbBefore = rssMb();
+    const decodeStart = performance.now();
+    const image = png ? decodePng(body) : decodeJpeg(body, { useTArray: true, maxResolutionInMP: 64, maxMemoryUsageInMB: 1024 });
+    log({
+      s4: 'decode', at: Date.now(), id, format: png ? 'png' : 'jpeg', width: image.width, height: image.height, ms: Math.round(performance.now() - decodeStart), rssMbBefore, rssMbAfter: rssMb(),
+    });
+  } catch (error) {
+    log({ s4: step, at: Date.now(), id, error: String(error) });
   }
-  return data;
-};
-
-export async function probeDecode(width: number, height: number) {
-  const name = `${width}x${height}`;
-  const result = await attempt(() => decodeSteps(width, height, name));
-  if ('error' in result) log({ s4: 'decode', at: Date.now(), size: name, error: result.error });
-}
-
-async function decodeSteps(width: number, height: number, name: string) {
-  const data = testImage(width, height);
-  let jpg: Uint8Array = new Uint8Array();
-  let png: Uint8Array = new Uint8Array();
-  log({ s4: 'encode', at: Date.now(), size: name, rssMbBefore: rssMb(), jpeg: await timed(() => { jpg = encodeJpeg({ data, width, height }, 90).data; }), jpegBytes: jpg.length });
-  log({ s4: 'encode', at: Date.now(), size: name, rssMbBefore: rssMb(), png: await timed(() => { png = encodePng({ data, width, height, channels: 4 }); }), pngBytes: png.length });
-  const before = rssMb();
-  log({ s4: 'decode', at: Date.now(), size: name, format: 'jpeg', bytes: jpg.length, rssMbBefore: before, ...(await timed(() => decodeJpeg(jpg, { useTArray: true, maxResolutionInMP: 64, maxMemoryUsageInMB: 1024 }))), rssMbAfter: rssMb() });
-  log({ s4: 'decode', at: Date.now(), size: name, format: 'png', bytes: png.length, rssMbBefore: rssMb(), ...(await timed(() => decodePng(png))), rssMbAfter: rssMb() });
 }
 
 const EMPTY_WASM = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]); // the smallest valid module
 
-// Three items, so that each stays well under the 30 s of a request (the first build did all in one and logged nothing).
+// Two items, so that each request stays well under the 30 s limit (the first build did all in one and logged nothing).
 menu('/internal/menu/probe-limits', async () => {
   log({ s4: 'wasm', at: Date.now(), ...(await timed(() => WebAssembly.instantiate(EMPTY_WASM))) });
   await probeRedis();
   return 'S4: logged WebAssembly and Redis';
 });
 
-menu('/internal/menu/probe-decode-4k', async () => {
-  await probeDecode(3840, 2160); // the result that the plan checks (< 3 s)
-  return 'S4: logged the 4K decode';
-});
-
-menu('/internal/menu/probe-decode-8k', async () => {
-  await probeDecode(7680, 4320);
-  return 'S4: logged the 8K decode';
+menu('/internal/menu/probe-decode', async ({ targetId }) => {
+  await probeDecode(targetId as T3);
+  return `S4: logged the decode of ${targetId}`;
 });
 
 app.onError((error, c) => {

@@ -23,7 +23,6 @@ target(
     deps = [
         glob("*.py"),
         glob("tests/**", exclude = ["**/__pycache__/**"]),
-        file("test/fixtures/backfill-sample.txt", abs = True),
     ],
     hash_deps = [":venv"],
     runtime_pass_env = ["PATH"],

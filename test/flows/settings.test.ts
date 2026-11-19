@@ -12,7 +12,7 @@ test('every setting that devvit.json lets Devvit validate has a route that answe
   const sim = createSim(app, fx);
   sim.install(SUB);
   const names = Object.entries(devvit.settings.subreddit).flatMap(([name, setting]) => ('validationEndpoint' in setting ? [name] : []));
-  expect(names.length).toBeGreaterThan(10);
+  expect(names.length).toBeGreaterThanOrEqual(10);
   for (const name of names) expect(await sim.validate(name, undefined), name).toEqual({ success: true });
 });
 
@@ -28,7 +28,6 @@ const bad: [string, unknown, string][] = [
   ['rateLimitPosts', 'many', 'Write a whole number from 1 to 1000.'],
   ['sourceHours', 0, 'Write a number from 0.01 to 696.'],
   ['sourceHours', 697, 'Write a number from 0.01 to 696.'],
-  ['repostMonths', 9, 'Write a whole number from 1 to 8.'],
 ];
 for (const [name, value, error] of bad) {
   test(`validation: ${name} = ${JSON.stringify(value)} is rejected with a message for the mod`, async (fx) => {
@@ -44,7 +43,7 @@ test('validation: good values are accepted', async (fx) => {
   const good: [string, unknown][] = [
     ['minHorizontal', '1920x1080'], ['minSquare', '1000 X 1000'], ['aspectHorizontal', '16:10 to none'], ['aspectVertical', 'none to 10:16'],
     ['exceptAuthors', 'alice, bob_2, carol-3'], ['flairRules', 'Desktop: horizontal\nOther: skip'], ['rateLimitHours', 24], ['rateLimitPosts', 4],
-    ['sourceHours', 0.5], ['sourceHours', 696], ['repostMonths', 8],
+    ['sourceHours', 0.5], ['sourceHours', 696],
   ];
   for (const [name, value] of good) expect(await sim.validate(name, value), name).toEqual({ success: true });
 });

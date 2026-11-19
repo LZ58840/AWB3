@@ -135,50 +135,6 @@ export async function recordRate(authorId: string, postId: string, createdAt: nu
 export const rateHistory = (authorId: string, createdAt: number, windowMs: number) =>
   redis.zRange(`rl:${authorId}`, createdAt - windowMs, createdAt, { by: 'score' });
 
-// ---- The ids of image posts by ISO week (the input of the repost backfill in 3.1): the key lives for repostMonths and 1 month.
-/** The ISO week of a time, as `yyyy-ww`: the Thursday of the week decides the year. */
-export function isoWeek(ms: number): string {
-  const day = new Date(ms);
-  const thursday = new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate() + 3 - ((day.getUTCDay() + 6) % 7)));
-  const year = thursday.getUTCFullYear();
-  const week = Math.floor((thursday.getTime() - Date.UTC(year, 0, 1)) / (7 * DAY)) + 1;
-  return `${year}-${String(week).padStart(2, '0')}`;
-}
-
-const addMonths = (ms: number, months: number): number => {
-  const date = new Date(ms);
-  date.setUTCMonth(date.getUTCMonth() + months);
-  return date.getTime();
-};
-
-/** The Monday 00:00 UTC that ends the ISO week of a time. */
-const weekEnd = (ms: number): number => {
-  const day = new Date(ms);
-  return Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate() + 7 - ((day.getUTCDay() + 6) % 7));
-};
-
-export async function recordSeen(postId: string, createdAt: number, months: number): Promise<void> {
-  const key = `seen:${isoWeek(createdAt)}`;
-  await redis.zAdd(key, { member: postId, score: createdAt });
-  await redis.expire(key, Math.ceil((addMonths(Date.now(), months + 1) - Date.now()) / 1000));
-}
-
-/**
- * `repostMonths` changed from `before` to `months` (plan 5.5): a week key lives until its week has ended + `months` + 1 month.
- * Gives each week key that can exist its new life, or deletes it when that time has passed. The names follow from the dates,
- * because Redis has no key scan. Keys that depend on `repostMonths` in 3.1 (`sig:`, `sigidx:`) join here.
- */
-export async function retimeSeen(months: number, before: number, now: number): Promise<void> {
-  const oldest = addMonths(now, -(Math.max(months, before) + 1)) - 7 * DAY;
-  const gone: string[] = [];
-  for (let at = now; at >= oldest; at -= 7 * DAY) {
-    const end = addMonths(weekEnd(at), months + 1);
-    if (end > now) await redis.expire(`seen:${isoWeek(at)}`, Math.ceil((end - now) / 1000));
-    else gone.push(`seen:${isoWeek(at)}`);
-  }
-  if (gone.length > 0) await redis.del(...gone);
-}
-
 // ---- The post record: what the app decided about a post and where it stands. No title, body or URL (plan 5.5).
 /** The state of one item of a post. `open`: an attempt runs, or was killed. The rest are the step markers of an action. */
 export interface ItemState {

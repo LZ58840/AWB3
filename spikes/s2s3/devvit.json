@@ -65,18 +65,11 @@
         "endpoint": "/internal/menu/probe-limits"
       },
       {
-        "label": "S4: decode 4K",
-        "description": "Time a 4K JPEG and PNG decode and write the result to the app log",
+        "label": "S4: decode this post",
+        "description": "Fetch the image of this post, decode it, and write the times and the memory to the app log",
         "forUserType": "moderator",
-        "location": "subreddit",
-        "endpoint": "/internal/menu/probe-decode-4k"
-      },
-      {
-        "label": "S4: decode 8K",
-        "description": "Time an 8K JPEG and PNG decode and write the result to the app log",
-        "forUserType": "moderator",
-        "location": "subreddit",
-        "endpoint": "/internal/menu/probe-decode-8k"
+        "location": "post",
+        "endpoint": "/internal/menu/probe-decode"
       }
     ]
   },

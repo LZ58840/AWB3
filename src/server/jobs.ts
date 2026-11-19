@@ -1,6 +1,5 @@
 // The scheduled jobs (plan 5.3): the tick works through the queue.
 import { context, reddit } from '@devvit/web/server';
-import { NUMBER_SETTINGS } from '../core/config';
 import { effectiveMode } from '../core/post';
 import type { Config } from '../core/types';
 import { alert, reasonOf } from './alert';
@@ -9,7 +8,7 @@ import { completeRemoval, logLine, moderate } from './moderate';
 import { readConfig } from './settings';
 import { buildReport, SHADOW_DAYS } from './shadow';
 import {
-  audit, countError, enqueue, enqueueUnknown, lease, loadPost, lockTick, newItemState, nextDue, queueStats, readHealth, recentAudit, release, retimeSeen, savePost,
+  audit, countError, enqueue, enqueueUnknown, lease, loadPost, lockTick, newItemState, nextDue, queueStats, readHealth, recentAudit, release, savePost,
   unlockTick, writeHealth, type Item, type PostRecord,
 } from './store';
 
@@ -55,7 +54,7 @@ async function giveUp(item: Item, cfg: Config, rec: PostRecord, reason: string, 
 }
 
 /** One attempt at one item (plan 5.3 lease). Gives true when the item is finished or waits; false when it failed or another tick has it. */
-async function runItem(item: Item, cfg: Config, appUser: string, repostMonths: number): Promise<boolean> {
+async function runItem(item: Item, cfg: Config, appUser: string): Promise<boolean> {
   const startedAt = Date.now();
   const leased = await lease(item, startedAt);
   if (leased === undefined) return false; // another tick took the item first
@@ -78,7 +77,7 @@ async function runItem(item: Item, cfg: Config, appUser: string, repostMonths: n
     return giveUp(item, cfg, rec, 'killed', leased, startedAt);
   }
   try {
-    const { retryAt } = await moderate({ item, cfg, appUserId: appUser, repostMonths, startedAt, rec, state, save });
+    const { retryAt } = await moderate({ item, cfg, appUserId: appUser, startedAt, rec, state, save });
     state.open = false;
     await save();
     await release(item, leased, retryAt);
@@ -96,21 +95,12 @@ async function runItem(item: Item, cfg: Config, appUser: string, repostMonths: n
   }
 }
 
-/** A new `repostMonths` gives the keys that depend on it new TTLs (plan 5.5). A setting that was never applied is the default. */
-async function applyRepostMonths(months: number): Promise<void> {
-  const before = Number((await readHealth('repostMonthsApplied')) ?? NUMBER_SETTINGS.repostMonths.def);
-  if (before === months) return;
-  await retimeSeen(months, before, Date.now());
-  await writeHealth({ repostMonthsApplied: String(months) });
-}
-
 export async function tick(): Promise<void> {
   const lock = await lockTick();
   if (lock === undefined) return;
   try {
     const started = Date.now();
-    const { config: cfg, repostMonths } = await readConfig();
-    await applyRepostMonths(repostMonths);
+    const { config: cfg } = await readConfig();
     let appUser: string | undefined;
     let worked = 0;
     let succeeded = false;
@@ -120,7 +110,7 @@ export async function tick(): Promise<void> {
       worked += 1;
       try {
         appUser ??= await appUserId();
-        succeeded = (await runItem(item, cfg, appUser, repostMonths)) || succeeded;
+        succeeded = (await runItem(item, cfg, appUser)) || succeeded;
       } catch (error) {
         // The attempt did not even start or end (Redis or Reddit failed outside it): the tick goes on, and the item comes back in a minute.
         console.error(JSON.stringify({ evt: 'error', sub: context.subredditName, postId: item.postId, kind: item.kind, error: reasonOf(error), stack: (error as Error).stack }));

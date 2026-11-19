@@ -16,7 +16,7 @@ const page = (name: string) => readFileSync(join(root, 'test/fixtures', `legacy-
 // The command line cases start tsx.
 vi.setConfig({ testTimeout: 30_000 });
 
-// The 18 settings of devvit.json (3.0) in its order. They are written here again on purpose: a new setting needs a decision in the tool.
+// The 17 settings of devvit.json (3.0) in its order. They are written here again on purpose: a new setting needs a decision in the tool.
 const KEYS = [
   'mode',
   'exceptAuthors',
@@ -35,7 +35,6 @@ const KEYS = [
   'rateLimitCountDeleted',
   'sourceComment',
   'sourceHours',
-  'repostMonths',
 ];
 
 // What the tool prints for a setting that the legacy page does not set: the defaults of plan 5.6, and `mode` dry-run (cut-over starts there).
@@ -57,7 +56,6 @@ const DEFAULTS = {
   rateLimitCountDeleted: false,
   sourceComment: false,
   sourceHours: 1,
-  repostMonths: 6,
 };
 
 // legacy-config-animewallpaper.yaml
@@ -79,7 +77,6 @@ const ANIMEWALLPAPER = {
   rateLimitCountDeleted: true,
   sourceComment: true,
   sourceHours: 1,
-  repostMonths: 6, // 3.0 has no repost check: only the history length of `seen:` is a setting
 };
 
 // legacy-config-animephonewallpapers.yaml: no horizontal sizes (null), one author, other flairs, vertical aspect 9:21 to 9:16.
@@ -114,7 +111,6 @@ rateLimitPosts: 4
 rateLimitCountDeleted: true
 sourceComment: true
 sourceHours: 1
-repostMonths: 6
 `;
 
 // The default page of the legacy bot (legacy requirements, Appendix B1): every rule off, no threshold.
@@ -163,7 +159,7 @@ describe('the two real legacy pages', () => {
     expect(problems).toEqual([]);
   });
 
-  it.each(['animewallpaper', 'animephonewallpapers'])('%s: all 18 settings, in the order of devvit.json', (name) => {
+  it.each(['animewallpaper', 'animephonewallpapers'])('%s: all 17 settings, in the order of devvit.json', (name) => {
     expect(Object.keys(convert(page(name)).settings)).toEqual(KEYS);
   });
 
@@ -358,21 +354,16 @@ RateLimitAny:
 SourceCommentAny:
   enabled: true
   timeout_hrs: 0.001
-RepostAny:
-  enabled: true
-  report_only: true
-  similarity_pct: 0.75
-  threshold_months: 12
 `;
   const prefixes = (problems: string[]) => problems.map((p) => p.split(':')[0]);
 
   it('names each setting, from validateSetting', () => {
     const { settings, problems } = convert(bad);
     // legacy reads `Vertical` as a name that matches no orientation; `16:10` alone is the number 970 in YAML 1.1
-    for (const key of ['flairRules', 'exceptAuthors', 'minHorizontal', 'aspectHorizontal', 'aspectVertical', 'rateLimitHours', 'sourceHours', 'repostMonths']) {
+    for (const key of ['flairRules', 'exceptAuthors', 'minHorizontal', 'aspectHorizontal', 'aspectVertical', 'rateLimitHours', 'sourceHours']) {
       expect(prefixes(problems), key).toContain(key);
     }
-    expect(settings).toMatchObject({ flairRules: 'Mobile: Vertical', exceptAuthors: 'u/foo', minHorizontal: '1920*1080', aspectVertical: '970', rateLimitHours: 1.5, repostMonths: 12 });
+    expect(settings).toMatchObject({ flairRules: 'Mobile: Vertical', exceptAuthors: 'u/foo', minHorizontal: '1920*1080', aspectVertical: '970', rateLimitHours: 1.5 });
   });
 
   it('adds the cross-field problem of parseConfig: a rule that is on needs a threshold', () => {

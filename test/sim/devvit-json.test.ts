@@ -48,7 +48,7 @@ test('three moderator menu items; each form name that a menu can show has a subm
   expect(Object.keys(devvit.forms).sort()).toEqual(['info', 'shadowReport']);
 });
 
-test('install settings of plan section 5.6 that 3.0 uses, in display order; repostMonths stays as the history length that `seen:` needs', () => {
+test('install settings of plan section 5.6 that 3.0 uses, in display order; the repost settings come with 3.1', () => {
   expect(Object.keys(settings)).toEqual([
     'mode', 'exceptAuthors', 'flairRules',
     'resolutionMismatch',
@@ -56,9 +56,7 @@ test('install settings of plan section 5.6 that 3.0 uses, in display order; repo
     'aspectRatio', 'aspectHorizontal', 'aspectVertical',
     'rateLimit', 'rateLimitHours', 'rateLimitPosts', 'rateLimitCountDeleted',
     'sourceComment', 'sourceHours',
-    'repostMonths',
   ]);
-  expect((devvit.settings.subreddit.repostMonths as { label: string }).label).toMatch(/history/i);
 });
 
 test('free-form settings have a validation route named after the setting; toggles and selects have none', () => {
@@ -68,10 +66,11 @@ test('free-form settings have a validation route named after the setting; toggle
   }
 });
 
-test('plan defaults: everything off, rate limit 24 h and 4 posts, source 1 h, a history of 6 months', () => {
+test('plan defaults: everything off, rate limit 24 h and 4 posts, source 1 h', () => {
   const defaults = Object.fromEntries(Object.entries(devvit.settings.subreddit).map(([name, s]) => [name, (s as { defaultValue?: unknown }).defaultValue]));
   expect(defaults).toMatchObject({
     mode: 'off', exceptAuthors: '', flairRules: '', resolutionMismatch: false, resolutionBad: false, aspectRatio: false,
-    rateLimit: false, rateLimitHours: 24, rateLimitPosts: 4, rateLimitCountDeleted: false, sourceComment: false, sourceHours: 1, repostMonths: 6,
+    rateLimit: false, rateLimitHours: 24, rateLimitPosts: 4, rateLimitCountDeleted: false, sourceComment: false, sourceHours: 1,
   });
+  expect(defaults).not.toHaveProperty('repostMonths');
 });

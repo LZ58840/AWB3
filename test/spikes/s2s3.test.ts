@@ -10,9 +10,11 @@ import { Header } from '@devvit/shared-types/Header.js';
 import { parseAppConfigJson } from '@devvit/shared-types/schemas/config-file.v1.js';
 import { createDevvitTest, type DevvitFixtures } from '@devvit/test/server/vitest';
 import { context, reddit } from '@devvit/web/server';
-import { afterAll, expect, vi } from 'vitest';
+import { encode as encodePng } from 'fast-png';
+import { encode as encodeJpeg } from 'jpeg-js';
+import { afterAll, expect, onTestFinished, vi } from 'vitest';
 import devvit from '../../spikes/s2s3/devvit.json';
-import { app, probeDecode } from '../../spikes/s2s3/src/app';
+import { app } from '../../spikes/s2s3/src/app';
 
 const test = createDevvitTest(); // subreddit testsub (t5_testsub), user testuser
 
@@ -48,7 +50,7 @@ test('devvit.json: the app that the owner registered, with Reddit, Redis and the
   expect(config.permissions.http).toEqual({ enable: true, domains: ['i.redd.it', 'preview.redd.it'] });
 });
 
-test('devvit.json: six triggers, seven moderator menu items, a fetch switch and a select setting', () => {
+test('devvit.json: six triggers, six moderator menu items, a fetch switch and a select setting', () => {
   expect(Object.keys(devvit.triggers)).toEqual([
     'onPostSubmit', 'onPostFlairUpdate', 'onPostDelete', 'onCommentCreate', 'onAutomoderatorFilterPost', 'onModAction',
   ]);
@@ -58,8 +60,7 @@ test('devvit.json: six triggers, seven moderator menu items, a fetch switch and 
     ['S2: dump listings', 'subreddit', 'moderator'],
     ['S3: probe platform', 'subreddit', 'moderator'],
     ['S4: WebAssembly and Redis', 'subreddit', 'moderator'],
-    ['S4: decode 4K', 'subreddit', 'moderator'],
-    ['S4: decode 8K', 'subreddit', 'moderator'],
+    ['S4: decode this post', 'post', 'moderator'],
   ]);
   expect(devvit.settings.subreddit).toMatchObject({ fetchProbe: { type: 'boolean', defaultValue: false }, probeSelect: { type: 'select' } });
 });
@@ -399,22 +400,10 @@ test('extract.mjs reads what the app writes: a post trigger, the listings, the p
   expect(text).toContain('- fetch probe S2-99 contract: gallery 320x180 {"status":200,"contentType":"image/jpeg","contentLength":null,"bytes":16,"first16":"ffd8ffe000104a464946000101000001"}');
 });
 
-// S4: the 4K decode runs for real here (a few seconds); the 8K item calls the same function with other sizes.
 test('a menu request writes a start line first, before any work (S4: a request that times out still shows that it arrived)', async () => {
   const lines = capture({ starts: true });
   await menu(endpointOf('S3: probe platform'), { location: 'subreddit', targetId: 't5_testsub' });
   expect(lines()[0]).toEqual({ menu: endpointOf('S3: probe platform'), at: expect.any(Number), start: true, rssMb: expect.any(Number) });
-});
-
-// S4: the 4K decode runs for real here (a few seconds); the 8K item calls the same function with other sizes.
-test('menu "S4: decode 4K" logs the 4K encode and decode, each step on its own line', { timeout: 60_000 }, async () => {
-  const lines = capture();
-  const res = await menu(endpointOf('S4: decode 4K'), { location: 'subreddit', targetId: 't5_testsub' });
-  expect([res.status, (await res.json()).showToast]).toEqual([200, 'S4: logged the 4K decode']);
-  const got = lines();
-  expect(got.map((l) => [l.s4, l.format ?? null])).toEqual([['encode', null], ['encode', null], ['decode', 'jpeg'], ['decode', 'png']]);
-  for (const line of got) expect(line, JSON.stringify(line)).not.toHaveProperty('error');
-  for (const line of got.slice(2)) expect(line).toMatchObject({ size: '3840x2160', bytes: expect.any(Number), ms: expect.any(Number), rssMbBefore: expect.any(Number), rssMbAfter: expect.any(Number) });
 });
 
 test('menu "S4: WebAssembly and Redis" logs WebAssembly, then the Redis write and each read step, each step on its own line', { timeout: 60_000 }, async ({ mocks }) => {
@@ -437,9 +426,95 @@ test('menu "S4: WebAssembly and Redis" logs WebAssembly, then the Redis write an
   for (const key of ['spike:s4:h0', 'spike:s4:h34', 'spike:s4:s49']) expect((await mocks.redis.plugin.ExpireTime({ key })).value, key).toBeGreaterThan(0); // every key expires
 });
 
-test('menu "S4: decode 8K" is the route of its devvit.json item; a failure in the decode setup still writes an s4 line', async () => {
-  expect(app.routes.some((r) => r.method === 'POST' && r.path === endpointOf('S4: decode 8K'))).toBe(true);
+// S4: the decode of the image of one post. The images are small and made here; the fetch is mocked, as in the S6 tests above.
+const rgba = (width: number, height: number) => ({ width, height, data: new Uint8Array(width * height * 4).fill(128) });
+const PNG_BYTES = encodePng({ ...rgba(24, 16), channels: 4 });
+const JPEG_BYTES = encodeJpeg(rgba(40, 24), 90).data;
+const fetchBytes = (bytes: Uint8Array, contentType: string) =>
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(new Uint8Array(bytes), { status: 200, headers: { 'content-type': contentType } }));
+
+/** Sends the menu request for t3_p1. A fake setTimeout and Date end the 1 s wait of the app at once, and `at` shows how long it was. */
+const decodePost = async () => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'Date'] });
+  onTestFinished(() => void vi.useRealTimers()); // fake timers are global; the harness does not undo them
+  const request = Promise.resolve(menu(endpointOf('S4: decode this post'), { location: 'post', targetId: 't3_p1' }));
+  let answered = false;
+  void request.then(() => (answered = true));
+  while (!answered) await vi.advanceTimersByTimeAsync(1000);
+  return request;
+};
+
+test('menu "S4: decode this post" fetches the image, logs the fetch, waits 1 s, then decodes the PNG and logs the decode', async ({ mocks }) => {
   const lines = capture();
-  await probeDecode(-1, 1); // a negative size: the Uint8Array cannot be made
-  expect(lines()).toEqual([{ s4: 'decode', at: expect.any(Number), size: '-1x1', error: expect.stringContaining('RangeError') }]);
+  const fetch = fetchBytes(PNG_BYTES, 'image/png');
+  addPost(mocks);
+  const res = await decodePost();
+  expect(fetch).toHaveBeenCalledExactlyOnceWith(PNG, { headers: { Accept: 'image/jpeg' }, redirect: 'error', signal: expect.any(AbortSignal) });
+  expect([res.status, await res.json()]).toEqual([200, { showToast: 'S4: logged the decode of t3_p1' }]);
+  const [fetched, decoded] = lines();
+  expect(fetched).toEqual({ s4: 'fetch', at: expect.any(Number), id: 't3_p1', url: PNG, status: 200, contentType: 'image/png', bytes: PNG_BYTES.length, ms: expect.any(Number) });
+  expect(decoded).toEqual({
+    s4: 'decode', at: expect.any(Number), id: 't3_p1', format: 'png', width: 24, height: 16, ms: expect.any(Number), rssMbBefore: expect.any(Number), rssMbAfter: expect.any(Number),
+  });
+  expect(decoded!.at - fetched!.at).toBe(1000); // Devvit can send the fetch line during this wait, before the decode blocks the event loop
+});
+
+test('menu "S4: decode this post" decodes a JPEG; the URL of the post goes through the URL rule, so a preview URL gives the i.redd.it file', async ({ mocks }) => {
+  const lines = capture();
+  const fetch = fetchBytes(JPEG_BYTES, 'image/jpeg');
+  addPost(mocks, { url: 'https://preview.redd.it/pic.jpeg?width=640&format=pjpg&s=sig' });
+  await decodePost();
+  expect(fetch).toHaveBeenCalledExactlyOnceWith('https://i.redd.it/pic.jpeg', expect.anything());
+  expect(lines()).toMatchObject([{ s4: 'fetch', url: 'https://i.redd.it/pic.jpeg', contentType: 'image/jpeg', bytes: JPEG_BYTES.length }, { s4: 'decode', format: 'jpeg', width: 40, height: 24 }]);
+});
+
+test('menu "S4: decode this post" takes the first gallery entry on i.redd.it or preview.redd.it, as its i.redd.it original, when the post URL is not an image', async ({ mocks }) => {
+  const lines = capture();
+  const fetch = fetchBytes(PNG_BYTES, 'image/png');
+  const entry = (url: string) => ({ url, width: 24, height: 16, status: 1 });
+  addPost(mocks, {
+    url: 'https://www.reddit.com/gallery/g1',
+    gallery: [entry('https://external-preview.redd.it/x.png'), entry('https://preview.redd.it/g2.png?auto=webp&s=abc'), entry('https://i.redd.it/g3.png')],
+  });
+  await decodePost();
+  expect(fetch).toHaveBeenCalledExactlyOnceWith('https://i.redd.it/g2.png', expect.anything());
+  expect(lines()).toMatchObject([{ s4: 'fetch', url: 'https://i.redd.it/g2.png' }, { s4: 'decode', format: 'png' }]);
+});
+
+test('menu "S4: decode this post" logs skipped for a post without a usable image URL, and fetches nothing', async ({ mocks }) => {
+  const lines = capture();
+  const fetch = vi.spyOn(globalThis, 'fetch');
+  addPost(mocks, { url: 'https://example.com/a.jpg', gallery: [{ url: 'https://external-preview.redd.it/a.jpg?s=1', width: 600, height: 400, status: 1 }] });
+  const res = await decodePost();
+  expect(fetch).not.toHaveBeenCalled();
+  expect([res.status, (await res.json()).showToast]).toEqual([200, 'S4: logged the decode of t3_p1']);
+  expect(lines()).toEqual([{ s4: 'fetch', at: expect.any(Number), id: 't3_p1', skipped: 'no i.redd.it or preview.redd.it URL' }]);
+});
+
+test('menu "S4: decode this post" logs a failed fetch (domain not approved yet) and does not decode', async ({ mocks }) => {
+  const lines = capture();
+  vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('domain not allowed'));
+  addPost(mocks);
+  const res = await decodePost();
+  expect(res.status).toBe(200);
+  expect(lines()).toEqual([{ s4: 'fetch', at: expect.any(Number), id: 't3_p1', error: 'Error: domain not allowed' }]);
+});
+
+test('menu "S4: decode this post" reads at most 20 MiB of a body: it stops, cancels the stream, and logs an error', async ({ mocks }) => {
+  const lines = capture();
+  const { state, body } = bigBody();
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(body, { status: 200 }));
+  addPost(mocks);
+  await decodePost();
+  expect(lines()).toEqual([{ s4: 'fetch', at: expect.any(Number), id: 't3_p1', error: expect.stringContaining('20 MiB') }]);
+  expect(state.cancelled).toBe(true);
+  expect(state.pulls).toBeLessThan(25);
+});
+
+test('menu "S4: decode this post" logs the status of the fetch, then a decode error for bytes that are no PNG or JPEG', async ({ mocks }) => {
+  const lines = capture();
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('<html>denied</html>', { status: 403, headers: { 'content-type': 'text/html' } }));
+  addPost(mocks);
+  await decodePost();
+  expect(lines()).toMatchObject([{ s4: 'fetch', status: 403, contentType: 'text/html' }, { s4: 'decode', error: expect.stringContaining('not a PNG or JPEG') }]);
 });

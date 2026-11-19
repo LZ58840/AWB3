@@ -186,13 +186,6 @@
         "label": "Hours to write the source comment",
         "defaultValue": 1,
         "validationEndpoint": "/internal/settings/validate/sourceHours"
-      },
-      "repostMonths": {
-        "type": "number",
-        "label": "History length (months)",
-        "helpText": "How long AWB keeps the ids of image posts, from 1 to 8 months. Version 3.0 only stores the ids; the repost check comes with version 3.1.",
-        "defaultValue": 6,
-        "validationEndpoint": "/internal/settings/validate/repostMonths"
       }
     }
   },

@@ -78,7 +78,7 @@ export function convert(source: string): { settings: Settings; warnings: string[
     return value;
   };
 
-  // `mode` is dry-run: the cut-over starts there. The 3.0 manifest has no repost settings but repostMonths: 3.0 has no repost check.
+  // `mode` is dry-run: the cut-over starts there. The 3.0 manifest has no repost settings: 3.0 has no repost check.
   const settings: Settings = { ...DEFAULTS, mode: 'dry-run' };
 
   const authors = page.except_authors ?? [];
@@ -122,7 +122,6 @@ export function convert(source: string): { settings: Settings; warnings: string[
   const repost = section('RepostAny');
   const repostOn = flag('RepostAny.enabled', repost.enabled);
   const reportOnly = 'report_only' in repost ? flag('RepostAny.report_only', repost.report_only) : true;
-  settings.repostMonths = repost.threshold_months ?? settings.repostMonths;
   if (repostOn) {
     warn('RepostAny: not mapped in 3.0. AWB3 does not check reposts. Keep the legacy bot on repost checks until cut-over 2 (plan D13).');
     if (!reportOnly) {

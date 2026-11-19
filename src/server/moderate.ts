@@ -9,7 +9,7 @@ import { effectiveMode, isAlive, isDeleted, isRemoved, postImages, skipsAsRemove
 import { checkSource } from '../core/rules/sourceComment';
 import type { Config, Failure, Mode, PostImage, RateCandidate } from '../core/types';
 import { alert, reasonOf } from './alert';
-import { audit, enqueue, rateHistory, recordRate, recordSeen, type AuditEntry, type Item, type ItemState, type Kind, type PostRecord } from './store';
+import { audit, enqueue, rateHistory, recordRate, type AuditEntry, type Item, type ItemState, type Kind, type PostRecord } from './store';
 
 const MINUTE = 60_000;
 const HOUR = 3_600_000;
@@ -22,8 +22,6 @@ export interface Run {
   item: Item;
   cfg: Config;
   appUserId: string;
-  /** How long `seen:` keys live (with 1 month more). */
-  repostMonths: number;
   /** When the tick took the item (ms): the `ms` of the log line. */
   startedAt: number;
   rec: PostRecord;
@@ -221,7 +219,7 @@ async function finishRemoval(run: Run, post: Post, mode: Mode): Promise<Outcome>
 
 /** The `new:` flow (plan 5.4). */
 async function moderateNew(run: Run): Promise<Outcome> {
-  const { item, cfg, appUserId, repostMonths, rec, state } = run;
+  const { item, cfg, appUserId, rec, state } = run;
   if (rec.status === 'done' || rec.status === 'error') return {};
   const mode = effectiveMode(cfg, rec.firstMode);
 
@@ -241,6 +239,7 @@ async function moderateNew(run: Run): Promise<Outcome> {
     return {};
   }
   // Legacy counted all the posts of an author, also when the rule was off; the rule can be switched on later. Before the image wait, so that a later post counts this one.
+  // The trigger writes it too; this write is for a post that only the sweep finds.
   if (post.authorId) await recordRate(post.authorId, post.id, rec.createdAt, (cfg.rateLimit?.hours ?? NUMBER_SETTINGS.rateLimitHours.def) * HOUR);
   const parent = post.crosspostParentId ? await getPost(post.crosspostParentId) : undefined;
   const images = postImages(post, parent);
@@ -266,7 +265,6 @@ async function moderateNew(run: Run): Promise<Outcome> {
     }
   }
 
-  if (images.length > 0) await recordSeen(post.id, rec.createdAt, repostMonths);
   const reason = skipReason(cfg, rec.firstMode, skipInput(post), appUserId);
   if (reason) {
     rec.status = `skipped:${reason}`;

@@ -105,8 +105,8 @@ test('install settings: devvit.json defaults, a select as an array, and errors f
   const sim = createSim(done(new Hono()), fx);
   const inst = sim.install('wallpapers', { mode: 'enforce', minHorizontal: '1920x1080', rateLimitHours: 12 });
   const get = async () =>
-    Object.fromEntries(await Promise.all(['mode', 'minHorizontal', 'rateLimitHours', 'rateLimitPosts', 'repostMonths', 'exceptAuthors', 'sourceComment'].map(async (key) => [key, await settings.get(key)])));
-  expect(await get()).toEqual({ mode: ['enforce'], minHorizontal: '1920x1080', rateLimitHours: 12, rateLimitPosts: 4, repostMonths: 6, exceptAuthors: '', sourceComment: false });
+    Object.fromEntries(await Promise.all(['mode', 'minHorizontal', 'rateLimitHours', 'rateLimitPosts', 'exceptAuthors', 'sourceComment'].map(async (key) => [key, await settings.get(key)])));
+  expect(await get()).toEqual({ mode: ['enforce'], minHorizontal: '1920x1080', rateLimitHours: 12, rateLimitPosts: 4, exceptAuthors: '', sourceComment: false });
   inst.set({ mode: 'dry-run', rateLimitPosts: 3, sourceComment: true });
   expect(await get()).toMatchObject({ mode: ['dry-run'], rateLimitPosts: 3, sourceComment: true, minHorizontal: '1920x1080' });
   expect(() => sim.install('x', { modee: 'off' })).toThrow('unknown setting "modee"');

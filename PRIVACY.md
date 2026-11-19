@@ -1,6 +1,6 @@
 # AWB3 Privacy Policy
 
-Last updated: 2026-11-07
+Last updated: 2026-11-19
 
 This policy says what data the AWB3 app handles. AWB3 is a moderation app. It runs on Reddit's Developer Platform (Devvit). The moderators of r/Animewallpaper and r/AnimePhoneWallpapers installed it.
 
@@ -13,7 +13,7 @@ This policy covers the app only. Read the [Terms of Use](TERMS.md) for the other
 - The app has no ads. It does not sell data. It does not give data to third parties.
 - The app stores no post titles, no post bodies, and no URLs in Redis.
 - From version 3.1, the app stores image hashes and small gray thumbnails. It does not keep the full images.
-- The app deletes the hashes and the thumbnail of a post when the post is deleted.
+- From version 3.1, the app deletes the hashes and the thumbnail of a post when the post is deleted.
 
 ## What the app reads
 
@@ -39,7 +39,6 @@ Reddit runs the storage of each installation. Each Redis value has an expiry tim
 | Decision records | One entry for each decision, action, or error. An entry holds the post ID, the rule, the numbers behind the result, the action, and the time. The app also stores daily summary numbers. | To show the moderators why the app acted. To find errors. | 30 days |
 | Post records | The status of a post, its creation time, and the result of each rule. The IDs of matched older posts. The ID of the comment that the app wrote. | To avoid a second action on the same post. | 30 days |
 | Rate-limit records | The user ID of a post author. The IDs and creation times of the recent posts of that author. | To count the posts of an author for the rate limit rule. | The rate-limit window that the moderators set. The default is 24 hours. The maximum is 30 days. |
-| Lists of image posts | The IDs and creation times of image posts. | To build the repost history for older posts. | `repostMonths` plus 1 month (7 months with the default) |
 | Image hashes (3.1 and later) | See "Image hashes and thumbnails". | To find reposts. | `repostMonths` months from the creation time of the post, plus a margin of up to 3 weeks |
 | Thumbnails (3.1 and later) | See "Image hashes and thumbnails". | To confirm a possible repost. | 30 days from the creation time of the post |
 | Delete records (3.1 and later) | The post ID, the time of the deletion, and who deleted the post: the author or someone else. | To make sure that a late job does not store data of a deleted post. | 1 day after a removal. `repostMonths` plus 1 month after a deletion by the author. |
@@ -96,7 +95,7 @@ The app shares no data with anyone outside Reddit. It has no external server. It
 
 ## How the app deletes data
 
-**Deleted or removed posts.** Reddit tells the app when a post is deleted or removed. This includes a deletion by the author and a removal by a moderator, an admin, or the app. The app then deletes the hashes and the thumbnail of the post. This takes about one minute. If the app is busy, it can take longer.
+**Deleted or removed posts (3.1 and later).** Reddit tells the app when a post is deleted or removed. This includes a deletion by the author and a removal by a moderator, an admin, or the app. The app then deletes the hashes and the thumbnail of the post. This takes about one minute. If the app is busy, it can take longer.
 
 The app keeps records that hold no content. They hold only IDs, numbers, status, and times. They expire as the table above shows.
 
@@ -108,7 +107,7 @@ One exception: when AutoModerator holds a post for review, the app keeps the dat
 
 **Uninstall.** When the moderators uninstall the app from a subreddit, Devvit removes the data and the settings of that installation. The moderators cannot recover them. A reinstall does not bring them back.
 
-**Your choices.** To remove the data of your post sooner, delete the post on Reddit. To ask a question about your data, send a modmail to the moderators.
+**Your choices.** In version 3.0, the records of a deleted post stay until they expire. From version 3.1, a deleted post loses its hashes and thumbnail sooner. To ask a question about your data, or to ask for an earlier removal, send a modmail to the moderators.
 
 ## Changes to this policy
 
