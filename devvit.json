@@ -196,5 +196,8 @@
   ],
   "scripts": {
     "build": "npm run build"
+  },
+  "dev": {
+    "subreddit": "LZ58840"
   }
 }
