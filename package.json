@@ -39,5 +39,13 @@
     "fflate": "0.8.3",
     "hono": "4.13.18",
     "jpeg-js": "0.4.4"
+  },
+  "overrides": {
+    "isomorphic-git": "^1.44.17",
+    "tmp": "^0.2.7"
+  },
+  "allowScripts": {
+    "esbuild": true,
+    "protobufjs": false
   }
 }

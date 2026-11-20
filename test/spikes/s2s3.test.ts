@@ -69,7 +69,8 @@ test('the build script writes the server entry of devvit.json; the dev script is
   const { server, scripts } = devvit;
   expect(scripts.build).toMatch(/^esbuild src\/index\.ts /);
   expect(scripts.build).toContain(`--outfile=${server.dir}/${server.entry}`);
-  expect(scripts.dev).toBe(`${scripts.build} --watch=forever`);
+  // Plain --watch ends when the playtest closes its stdin; --watch=forever left orphan watchers that printed errors during npm ci.
+  expect(scripts.dev).toBe(`${scripts.build} --watch`);
 });
 
 for (const [name, path] of Object.entries(devvit.triggers)) {
