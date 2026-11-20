@@ -1,4 +1,4 @@
 # The log has real ids and names of Reddit users: commit the fixtures that extract.mjs writes, not the log.
-spike-logs*.jsonl
+spike-logs*.jsonl*
 spike-images/
 dist/
