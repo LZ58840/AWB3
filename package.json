@@ -23,7 +23,7 @@
     "@devvit/shared-types": "0.15.3",
     "@devvit/test": "0.15.3",
     "@types/node": "26.6.6",
-    "@vitest/coverage-v8": "5.1.0",
+    "@vitest/coverage-v8": "5.1.1",
     "devvit": "0.15.3",
     "esbuild": "0.28.2",
     "fast-check": "4.10.2",
@@ -31,7 +31,7 @@
     "js-yaml": "3.15.2",
     "tsx": "4.23.15",
     "typescript": "7.0.2",
-    "vitest": "5.1.0"
+    "vitest": "5.1.1"
   },
   "dependencies": {
     "@devvit/web": "0.15.3",
